@@ -39,7 +39,6 @@ async def get_station_info(station_id: str):
     clean_document(station)  # Nettoyer NaN/inf dans le document
     return station
 
-
 @data.get('/get_closest_stations/')
 async def get_closest_stations(lat: str, lon: str, max_distance: int = 5000):
     try:
