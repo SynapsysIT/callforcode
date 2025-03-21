@@ -13,7 +13,7 @@ env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
     CONTAINER_GROUP: callforcode-${{ github.ref_name }}
-    IMAGE_NAME: ${{ secrets.AZURE_ARC_SERVER }}/myapp:${{ github.sha }}
+    IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
     ACI_DNS_LABEL: callforcode-${{ github.ref_name}}
 
 jobs:
@@ -36,8 +36,19 @@ jobs:
 
             - name: Build and push Docker image
               run: |
-                docker build -t ${{ env.IMAGE_NAME }} .
+                echo "Building API service from API/docker-compose.yml"
+                docker compose -f API/docker-compose.yml build
+                docker images
+                IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "api-" | head -n 1)
+                echo "Tagging image $IMAGE_ID as ${{ env.IMAGE_NAME }}"
+                docker tag $IMAGE_ID ${{ env.IMAGE_NAME }}
+                echo "Pushing image ${{ env.IMAGE_NAME }}"
                 docker push ${{ env.IMAGE_NAME }}
+
+            - name: Delete existing container (if exists)
+              run: |
+                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --yes || true
+              
 
             - name: Deploy to Azure Container Instances (ACI)
               run: |
@@ -50,3 +61,4 @@ jobs:
                     echo "Deployment failed! Check Azure logs."
                     exit 1
                 fi
+                az container list --resource-group RG-CALL_FOR_CODE-MARCH --query "[].{Name:name, Status:instanceView.state}" --output table
