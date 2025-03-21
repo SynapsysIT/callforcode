@@ -5,6 +5,10 @@ on:
         branches:
             - '*'
 
+permissions:
+    id-token: write
+    contents: read
+
 env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
