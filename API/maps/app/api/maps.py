@@ -11,10 +11,10 @@ maps = APIRouter()
 
 @maps.get('/', response_model=List[Maps])
 async def index():
-   return {
-        "title": "Contribute to the data about water quality",
-        "Documentation": "Read the doc"
-    }
+   return [{
+        "title": "Welcome to the Maps API",
+        "documentation": "Read the doc"
+    }]
 
 @maps.post('/', status_code=201)
 async def add_data(payload: Maps):

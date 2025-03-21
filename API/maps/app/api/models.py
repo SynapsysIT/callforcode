@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Maps(BaseModel):
     title: str
-    localisation: str
+    documentation: str
  #  data: Object
 
 

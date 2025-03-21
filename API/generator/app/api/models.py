@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Generator(BaseModel):
     title: str
-    localisation: str
+    documentation: str
    # data: Object
 
 
