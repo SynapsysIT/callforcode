@@ -45,6 +45,11 @@ jobs:
                 echo "Pushing image ${{ env.IMAGE_NAME }}"
                 docker push ${{ env.IMAGE_NAME }}
 
+            - name: Delete existing container (if exists)
+              run: |
+                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --yes || true
+              
+
             - name: Deploy to Azure Container Instances (ACI)
               run: |
                 az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --image ${{ env.IMAGE_NAME }} --dns-name-label ${{ env.ACI_DNS_LABEL }} --ports 80 --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
@@ -56,3 +61,4 @@ jobs:
                     echo "Deployment failed! Check Azure logs."
                     exit 1
                 fi
+                az container list --resource-group RG-CALL_FOR_CODE-MARCH --query "[].{Name:name, Status:instanceView.state}" --output table
