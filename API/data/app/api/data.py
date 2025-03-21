@@ -11,10 +11,11 @@ data = APIRouter()
 
 @data.get('/', response_model=List[Data])
 async def index():
-   return {
-        "title": "Contribute to the data about water quality",
-        "Documentation": "Read the doc"
-    }
+   return [{
+        "title": "Welcome on the Data API",
+        "documentation": "Read the DOC"
+        
+    }]
 
 @data.post('/', status_code=201)
 async def add_data(payload: Data):

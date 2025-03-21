@@ -11,10 +11,10 @@ traitement = APIRouter()
 
 @traitement.get('/', response_model=List[Traitement])
 async def index():
-   return {
-        "title": "Contribute to the data about water quality",
-        "Documentation": "Read the doc"
-    }
+   return [{
+        "title": "Welcome to the Traitement API",
+        "documentation": "Read the doc"
+    }]
 
 @traitement.post('/', status_code=201)
 async def add_data(payload: Traitement):

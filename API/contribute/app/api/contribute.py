@@ -13,7 +13,7 @@ contribute = APIRouter()
 async def index():
    return [{
 
-        "title": "Contribute to the data about water quality",
+        "title": "Welcome to the contribute API",
         "documentation": "Read the doc"
     }]
 

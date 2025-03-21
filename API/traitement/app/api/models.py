@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class Traitement(BaseModel):
     title: str
-    localisation: str
+    documentation: str
 #    data: Object
 
 
