@@ -52,7 +52,7 @@ jobs:
 
             - name: Deploy to Azure Container Instances (ACI)
               run: |
-                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --image ${{ env.IMAGE_NAME }} --dns-name-label ${{ env.ACI_DNS_LABEL }} --ports 80 --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --image ${{ env.IMAGE_NAME }} --dns-name-label ${{ env.ACI_DNS_LABEL }} --ports 8000 --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
 
             - name: Verify deployment
               run: |
