@@ -13,7 +13,7 @@ env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
     CONTAINER_GROUP: callforcode-${{ github.ref_name }}
-    IMAGE_NAME: ${{ secrets.AZURE_ARC_SERVER }}/myapp:${{ github.sha }}
+    IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
     ACI_DNS_LABEL: callforcode-${{ github.ref_name}}
 
 jobs:
