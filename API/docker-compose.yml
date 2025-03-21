@@ -1,0 +1,36 @@
+version: '3'
+services:
+  api1:
+    build:
+      context: ./random_1
+      dockerfile: Dockerfile
+    ports: 
+      - "8001:8000"
+    networks:
+      - my_network
+
+  api2:
+    build:
+      context: ./random_2
+      dockerfile: Dockerfile
+    ports: 
+      - "8002:8000"
+    networks:
+      - my_network
+
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/nginx_config.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api1
+      - api2
+    networks:
+      - my_network
+
+
+networks:
+  my_network:
