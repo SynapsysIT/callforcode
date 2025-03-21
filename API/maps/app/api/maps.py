@@ -1,30 +1,30 @@
-from typing import list
+from typing import List
 from fastapi import Header, APIRouter
 
-from api.models import Data
+from api.models import Maps
 
 
 
-data = APIRoute()
+maps = APIRouter()
 
 
 
-@contribute.get('/', response_model=List(Data))
+@maps.get('/', response_model=List[Maps])
 async def index():
    return {
         "title": "Contribute to the data about water quality",
         "Documentation": "Read the doc"
     }
 
-@data.post('/', status_code=201)
-async def add_data(payload: Data):
+@maps.post('/', status_code=201)
+async def add_data(payload: Maps):
     contribution = payload.dict()
     # append to db
     return {'id': "ID to return"}
 
 
-@data.post('/post_photo', status_code=201)
-async def post_photo(payload: Data):
+@maps.post('/post_photo', status_code=201)
+async def post_photo(payload: Maps):
     photo = payload.dict()
     # do something
     return {'id': 'return something'}

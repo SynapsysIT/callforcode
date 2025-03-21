@@ -1,30 +1,29 @@
-from typing import list
+from typing import List
 from fastapi import Header, APIRouter
 
-from api.models import Traitement
+from api.models import Generator
+
+
+generator = APIRouter()
 
 
 
-traitement = APIRoute()
-
-
-
-@traitement.get('/', response_model=List(Contribute))
+@generator.get('/', response_model=List[Generator])
 async def index():
    return {
         "title": "Contribute to the data about water quality",
         "Documentation": "Read the doc"
     }
 
-@traitement.post('/', status_code=201)
-async def add_data(payload: Contribute):
+@generator.post('/', status_code=201)
+async def add_data(payload: Generator):
     contribution = payload.dict()
     # append to db
     return {'id': "ID to return"}
 
 
-@traitement.post('/post_photo', status_code=201)
-async def post_photo(payload: Contribute):
+@generator.post('/post_photo', status_code=201)
+async def post_photo(payload: Generator):
     photo = payload.dict()
     # do something
     return {'id': 'return something'}

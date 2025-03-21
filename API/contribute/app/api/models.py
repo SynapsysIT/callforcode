@@ -1,9 +1,10 @@
-from typing import Lis
+from typing import List
 from pydantic import BaseModel
 
 class Contribute(BaseModel):
     title: str
-    localisation: str
-    data: Object
+    documentation: str
+
+    #data: Object
 
 

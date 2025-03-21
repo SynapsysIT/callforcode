@@ -1,20 +1,21 @@
-from typing import list
+from typing import List
 from fastapi import Header, APIRouter
 
 from api.models import Contribute
 
 
 
-contribute = APIRoute()
+contribute = APIRouter()
 
 
 
-@contribute.get('/', response_model=List(Contribute))
+@contribute.get('/', response_model=List[Contribute])
 async def index():
-   return {
+   return [{
+
         "title": "Contribute to the data about water quality",
-        "Documentation": "Read the doc"
-    }
+        "documentation": "Read the doc"
+    }]
 
 @contribute.post('/', status_code=201)
 async def add_data(payload: Contribute):

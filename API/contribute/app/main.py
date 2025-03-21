@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from api.movies import movies
+from api.contribute import contribute
 
 app = FastAPI()
 
-app.include_router(movies)
+app.include_router(contribute)
