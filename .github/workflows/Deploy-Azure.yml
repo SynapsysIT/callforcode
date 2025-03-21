@@ -1,0 +1,50 @@
+name: Deploy to Azure
+
+on:
+    push:
+        branches:
+            - '*'
+
+env:
+    RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
+    LOCATION: francecentral
+    CONTAINER_GROUP: callforcode-${{ github.ref_name }}
+    IMAGE_NAME: ${{ secrets.AZURE_ARC_SERVER }}/myapp:${{ github.sha }}
+    ACI_DNS_LABEL: callforcode-${{ github.ref_name}}
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Login to Azure with SP
+              uses: azure/login@v1
+              with:
+                client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Login to Azure Container Registry (ACR)
+              run: |
+                echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login ${{ secrets.AZURE_ACR_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} --password-stdin
+          
+
+            - name: Build and push Docker image
+              run: |
+                docker build -t ${{ env.IMAGE_NAME }} .
+                docker push ${{ env.IMAGE_NAME }}
+
+            - name: Deploy to Azure Container Instances (ACI)
+              run: |
+                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --image ${{ env.IMAGE_NAME }} --dns-name-label ${{ env.ACI_DNS_LABEL }} --ports 80 --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+
+            - name: Verify deployment
+              run: |
+                STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --query "instanceView.state" -o tsv)
+                if [[ "$STATUS" != "Running" ]]; then
+                    echo "Deployment failed! Check Azure logs."
+                    exit 1
+                fi
