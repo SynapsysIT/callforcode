@@ -14,8 +14,8 @@ env:
     LOCATION: francecentral
     VM_NAME: callforcode-${{ github.ref_name }}
     VM_ADMIN: azureuser
-    VM_IMAGE: UbuntuLTS
-    VM_SIZE: Standard_B2s
+    VM_IMAGE: Ubuntu2404
+    VM_SIZE: Standard_B1s
     PUBLIC_IP_NAME: callforcode-${{ github.ref_name }}-ip
     VM_IP: ''
 
