@@ -41,7 +41,7 @@ jobs:
               run: |
                 echo "Building API service from API/docker-compose.yml"
                 cd API
-                docker-compose build
+                docker-compose up
                 docker images
                 services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
                 for service in "${services[@]}"
