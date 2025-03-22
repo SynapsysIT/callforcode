@@ -83,31 +83,55 @@ jobs:
                       - name: nginx
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/nginx:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8080
                       - name: contribute
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8001
                       - name: data
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/data:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8003
                       - name: generator
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/generator:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8004
                       - name: maps
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/maps:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8005
                       - name: traitement
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/traitement:${{ github.sha }}
+                          resources:
+                            requests:
+                              cpu: 0.5
+                              memoryInGB: 1
                           ports:
                             - port: 8006
                     osType: Linux
