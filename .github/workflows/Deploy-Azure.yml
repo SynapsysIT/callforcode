@@ -73,11 +73,15 @@ jobs:
               
             - name: Prepare ACI deployment file
               run: |
-                sed "s/\${{ env.CLEAN_BRANCH_NAME }}/$CLEAN_BRANCH_NAME/g" API/aci.yml | \
-                sed "s/\${{ github.sha }}/${{ github.sha }}/g" > API/aci_generated.yml
+                export CLEAN_BRANCH_NAME="${{ env.CLEAN_BRANCH_NAME }}"
+                export GITHUB_SHA="${{ github.sha }}"
+                export ACR_SERVER="${{ secrets.AZURE_ACR_SERVER }}"
+                export ACR_USERNAME="${{ secrets.AZURE_ACR_USERNAME }}"
+                export ACR_PASSWORD="${{ secrets.AZURE_ACR_PASSWORD }}"
+                envsubst < API/aci.yml > API/aci_generated.yml
+                echo "Generated ACI YAML:"
                 cat API/aci_generated.yml
               
-
             - name: Deploy to Azure Container Instances (ACI)
               run: |
                 az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
