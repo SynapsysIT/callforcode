@@ -42,7 +42,7 @@ jobs:
                 do
                     echo "Building $service"
                     IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$service:${{ github.sha }}"
-                    docker build -t $IMAGE_NAME -f $service/Dockerfile $service
+                    docker build -t $IMAGE_NAME -f API/$service/Dockerfile $service
                     docker push $IMAGE_NAME
                 done
 
