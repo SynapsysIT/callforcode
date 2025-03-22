@@ -78,6 +78,25 @@ jobs:
                 echo "Ajout des règles NSG pour ouvrir les ports..."
                 az network nsg rule create --resource-group RG-CALL_FOR_CODE-MARCH --nsg-name callforcode-${{ github.ref_name }}NSG --name AllowAPIPorts --priority 500 --direction Inbound --access Allow --protocol Tcp --source-address-prefixes '*' --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 8001 8003 8004 8005 8006 8080
 
+            - name: Install Docker and Docker Compose on VM
+              run: |
+                  echo "Installation de Docker et Docker Compose sur la VM..."
+                  sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no azureuser@${{ env.VM_IP }} << 'EOF'
+                    sudo apt-get update
+                    sudo apt-get install -y docker.io
+                    sudo systemctl start docker
+                    sudo systemctl enable docker
+                    sudo usermod -aG docker azureuser
+                    
+                    # Installer Docker Compose
+                    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                    sudo chmod +x /usr/local/bin/docker-compose
+                    sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+                    
+                    # Vérifier les installations
+                    docker --version
+                    docker-compose --version
+                  EOF
 
             - name: Send only required project files to VM
               run: |
