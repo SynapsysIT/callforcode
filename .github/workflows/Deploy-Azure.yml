@@ -14,6 +14,7 @@ env:
     LOCATION: francecentral
     CLEAN_BRANCH_NAME: ${{ github.ref_name }}
     IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
+    DOCKER_COMPOSE_FILE: ./API/docker-compose.yml
 
 jobs:
     deploy:
@@ -47,88 +48,21 @@ jobs:
           
             - name: Build and push Docker image
               run: |
-                echo "Building API service from API/docker-compose.yml"
-                cd API
-                docker-compose build
-                docker images
-                docker pull nginx:latest
-                services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
-                for service in "${services[@]}"
-                do
-                  echo "Building $service"
-                  IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/${service}:${{ github.sha }}"
-                  if [ "$service" == "nginx" ]; then
-                    IMAGE_ID="nginx:latest"
-                  else
-                    IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "api_${service}:latest" | head -n 1)
-                  fi
-                  if [ -z "$IMAGE_ID" ]; then
-                    echo "Erreur: Impossible de trouver l'image pour $service"
-                    exit 1
-                  fi
-                  echo "Tagging and pushing $service ($IMAGE_ID)"
-                  docker tag "$IMAGE_ID" "$IMAGE_NAME"
-                  docker push "$IMAGE_NAME"
-                done
+                export COMPOSE_DOCKER_CLI_BUILD=1
+                export DOCKER_BUILDKIT=1
+                docker-compose -f $DOCKER_COMPOSE_FILE build
+                docker-compose -f $DOCKER_COMPOSE_FILE push
 
               
             - name: Create ACI with Contribute first
               run: |
-                echo "🚀 Création de l'ACI avec contribute..."
-                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
-                  --image ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ env.GITHUB_SHA }} \
-                  --cpu 0.5 --memory 1 --ports 8001 --os-type Linux \
-                  --dns-name-label callforcode-${{ env.CLEAN_BRANCH_NAME }} \
-                  --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-
-            - name: Wait for Contribute to be Running
-              run: |
-                echo "Attente du démarrage de contribute..."
-                while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
-                  echo "En attente..."
-                  sleep 10
-                done
-                echo "Contribute est maintenant en cours d'exécution."
-
-
-    
-            - name: Add services one by one
-              run: |
-                    services=( "data" "generator" "maps" "traitement" )
-                    ports=( 8003 8004 8005 8006 )
-                    
-                    for i in "${!services[@]}"; do
-                      SERVICE=${services[$i]}
-                      PORT=${ports[$i]}
-    
-                      echo "Ajout du service $SERVICE avec le port $PORT..."
-                      az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
-                        --image ${{ secrets.AZURE_ACR_SERVER }}/$SERVICE:${{ github.sha }} \
-                        --cpu 0.5 --memory 1 --ports $PORT --os-type Linux \
-                        --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-    
-                      echo "Attente du démarrage de $SERVICE..."
-                      while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
-                        echo "En attente..."
-                        sleep 10
-                      done
-                      echo "$SERVICE est maintenant en cours d'exécution."
-                    done
-    
-            - name: Add Nginx last
-              run: |
-                    echo "Ajout de nginx en dernier..."
-                    az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
-                      --image ${{secrets.AZURE_ACR_SERVER }}/nginx:${{ github.sha }} \
-                      --cpu 0.5 --memory 1 --ports 8080 --os-type Linux \
-                      --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-    
-                    echo "Attente du démarrage de nginx..."
-                    while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
-                      echo "En attente..."
-                      sleep 10
-                    done
-                    echo "Nginx est maintenant en cours d'exécution."
+                az container create \
+                  --resource-group $RESOURCE_GROUP \
+                  --name my-api-container \
+                  --file $DOCKER_COMPOSE_FILE \
+                  --registry-login-server $ACR_SERVER \
+                   --registry-username ${{ secrets.AZURE_ACR_USERNAME }} \
+                  --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
     
             - name: Verify Deployment
               run: |
