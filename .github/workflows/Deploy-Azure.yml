@@ -71,10 +71,16 @@ jobs:
               run: |
                 az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLEAN_BRANCH_NAME }} --yes || true
               
+            - name: Prepare ACI deployment file
+              run: |
+                sed "s/\${{ env.CLEAN_BRANCH_NAME }}/$CLEAN_BRANCH_NAME/g" API/aci.yml | \
+                sed "s/\${{ github.sha }}/${{ github.sha }}/g" > API/aci_generated.yml
+                cat API/aci_generated.yml
+              
 
             - name: Deploy to Azure Container Instances (ACI)
               run: |
-                az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci.yml
+                az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
 
             - name: Verify deployment
               run: |
