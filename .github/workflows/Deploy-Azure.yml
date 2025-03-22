@@ -42,13 +42,13 @@ jobs:
                 echo "Building API service from API/docker-compose.yml"
                 cd API
                 docker-compose build
-
+                docker images
                 services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
                 for service in "${services[@]}"
                 do
                   echo "Building $service"
                   IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/${service}:${{ github.sha }}"
-                  IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "$service" | head -n 1)
+                  IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -E "(_|/)${service}" | head -n 1)
                   if [ -z "$IMAGE_ID" ]; then
                     echo "Erreur: Impossible de trouver l'image pour $service"
                     exit 1
