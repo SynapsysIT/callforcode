@@ -78,7 +78,7 @@ jobs:
                 export ACR_SERVER="${{ secrets.AZURE_ACR_SERVER }}"
                 export ACR_USERNAME="${{ secrets.AZURE_ACR_USERNAME }}"
                 export ACR_PASSWORD="${{ secrets.AZURE_ACR_PASSWORD }}"
-                envsubst < API/aci.yml > API/aci_generated.yml
+                envsubst '${CLEAN_BRANCH_NAME} ${GITHUB_SHA} ${ACR_SERVER} ${ACR_USERNAME} ${ACR_PASSWORD}' < API/aci.yml > API/aci_generated.yml
                 echo "Generated ACI YAML:"
                 cat API/aci_generated.yml
               
