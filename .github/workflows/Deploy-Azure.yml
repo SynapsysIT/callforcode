@@ -43,6 +43,7 @@ jobs:
                 cd API
                 docker-compose build
                 docker images
+                docker pull nginx:latest
                 services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
                 for service in "${services[@]}"
                 do
