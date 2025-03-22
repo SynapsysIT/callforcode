@@ -43,12 +43,12 @@ jobs:
                 cd API
                 pwd
                 docker-compose build
-                services=("contribute" "data" "generator" "maps" "traitement" "nginx")
+                services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
                 for service in "${services[@]}"
                 do
                     echo "Building $service"
                     IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$service:${{ github.sha }}"
-                    docker tag api_${service} $IMAGE_NAME
+                    docker tag api_${service}_latest $IMAGE_NAME
                     docker push $IMAGE_NAME
                 done
 
