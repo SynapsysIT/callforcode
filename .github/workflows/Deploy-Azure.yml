@@ -66,6 +66,31 @@ jobs:
                     done
                     echo "La VM est accessible."
 
+            - name: Configure firewall rules on VM
+              run: |
+                echo "Configuration des règles iptables pour ouvrir les ports..."
+                ssh -o StrictHostKeyChecking=no azureuser@${{ env.VM_IP }} << 'EOF'
+                  sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
+                  sudo netfilter-persistent save
+                EOF
+            
+            - name: Open necessary ports in NSG
+              run: |
+                echo "Ajout des règles NSG pour ouvrir les ports..."
+                az network nsg rule create \
+                  --resource-group RG-CALL_FOR_CODE-MARCH \
+                  --nsg-name callforcode-mainNSG \
+                  --name AllowAPIPorts \
+                  --priority 500 \
+                  --direction Inbound \
+                  --access Allow \
+                  --protocol Tcp \
+                  --source-address-prefixes '*' \
+                  --source-port-ranges '*' \
+                  --destination-port-ranges 22 8001 8003 8004 8005 8006 8080
+            --destination-address-prefixes '*' \
+
+
             - name: Send only required project files to VM
               run: |
                 echo "Envoi des fichiers nécessaires vers la VM..."
