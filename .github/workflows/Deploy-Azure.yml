@@ -71,7 +71,6 @@ jobs:
                 echo "Configuration des règles iptables pour ouvrir les ports..."
                 sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no azureuser@${{ env.VM_IP }} << 'EOF'
                   sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
-                  sudo netfilter-persistent save
                 EOF
             
             - name: Open necessary ports in NSG
