@@ -66,17 +66,20 @@ jobs:
                     done
                     echo "La VM est accessible."
 
-            - name: Install Docker and Docker Compose on VM
+            - name: Send only required project files to VM
               run: |
-                      echo "Installation de Docker et Docker Compose sur la VM..."
-                      sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} << 'EOF'
-                        sudo apt-get update -y
-                        sudo apt-get install -y docker.io
-                        sudo systemctl start docker
-                        sudo systemctl enable docker
-                        sudo usermod -aG docker $USER
-                        sudo apt-get install -y docker-compose
-                      EOF
+                echo "Envoi des fichiers nécessaires vers la VM..."
+                pwd
+                # Définir le bon répertoire (si les fichiers sont dans /API)
+                cd $GITHUB_WORKSPACE/API
+                pwd
+                # Supprimer les anciens fichiers sur la VM
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} "rm -rf /home/${{ env.VM_ADMIN }}/project"
+
+                # Copier uniquement les fichiers nécessaires
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r docker-compose.yml contribute data generator maps traitement nginx ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/project/
+                echo "Fichiers copiés avec succès."
+
 
             - name: Send only required project files to VM (Compressed)
               run: |
