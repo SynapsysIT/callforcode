@@ -41,15 +41,21 @@ jobs:
               run: |
                 echo "Building API service from API/docker-compose.yml"
                 cd API
-                pwd
                 docker-compose build
+
                 services=( "nginx" "contribute" "data" "generator" "maps" "traitement")
                 for service in "${services[@]}"
                 do
-                    echo "Building $service"
-                    IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$service:${{ github.sha }}"
-                    docker tag api_${service}_latest $IMAGE_NAME
-                    docker push $IMAGE_NAME
+                  echo "Building $service"
+                  IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/${service}:${{ github.sha }}"
+                  IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "$service" | head -n 1)
+                  if [ -z "$IMAGE_ID" ]; then
+                    echo "Erreur: Impossible de trouver l'image pour $service"
+                    exit 1
+                  fi
+                  echo "Tagging and pushing $service ($IMAGE_ID)"
+                  docker tag "$IMAGE_ID" "$IMAGE_NAME"
+                  docker push "$IMAGE_NAME"
                 done
 
             - name: Delete existing container (if exists)
