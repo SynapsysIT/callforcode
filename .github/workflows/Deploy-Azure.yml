@@ -41,7 +41,7 @@ jobs:
                 for service in "${services[@]}"
                 do
                     echo "Building $service"
-                    IMAGE_NAME="${{ env.ACR_SERVER }}/$service:${{ github.sha }}"
+                    IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$service:${{ github.sha }}"
                     docker build -t $IMAGE_NAME -f $service/Dockerfile $service
                     docker push $IMAGE_NAME
                 done
