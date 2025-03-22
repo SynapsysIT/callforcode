@@ -13,9 +13,7 @@ env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
     CLEAN_BRANCH_NAME: ${{ github.ref_name }}
-    CONTAINER_GROUP: callforcode-${{ env.CLEAN_BRANCH_NAME }}
     IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
-    ACI_DNS_LABEL: callforcode-${{ env.CLEAN_BRANCH_NAME}}
 
 jobs:
     deploy:
@@ -71,7 +69,7 @@ jobs:
 
             - name: Delete existing container (if exists)
               run: |
-                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --yes || true
+                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLEAN_BRANCH_NAME }} --yes || true
               
 
             - name: Deploy to Azure Container Instances (ACI)
@@ -80,7 +78,7 @@ jobs:
 
             - name: Verify deployment
               run: |
-                STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --query "instanceView.state" -o tsv)
+                STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)
                 if [[ "$STATUS" != "Running" ]]; then
                     echo "Deployment failed! Check Azure logs."
                     exit 1

@@ -1,6 +1,7 @@
 apiVersion: '2021-07-01'
 location: francecentral
 name: callforcode-${{ env.CLEAN_BRANCH_NAME }}
+
 properties:
   containers:
     - name: nginx
