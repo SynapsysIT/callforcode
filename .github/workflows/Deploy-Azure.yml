@@ -69,7 +69,7 @@ jobs:
 
             - name: Delete existing container (if exists)
               run: |
-                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CLEAN_BRANCH_NAME }} --yes || true
+                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --yes || true
               
             - name: Generate ACI YAML file
               run: |
@@ -163,8 +163,8 @@ jobs:
               run: |
                 az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
 
-                - name: Start Containers in Order
-                run: |
+            - name: Start Containers in Order
+              run: |
                   echo "🚀 Démarrage des conteneurs dans l'ordre..."
                   
                   az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name contribute
