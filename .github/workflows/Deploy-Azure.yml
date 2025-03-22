@@ -37,12 +37,14 @@ jobs:
             - name: Build and push Docker image
               run: |
                 echo "Building API service from API/docker-compose.yml"
+                cd API
+                docker-compose build
                 services=("contribute" "data" "generator" "maps" "traitement" "nginx")
                 for service in "${services[@]}"
                 do
                     echo "Building $service"
                     IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$service:${{ github.sha }}"
-                    docker build -t $IMAGE_NAME -f API/$service/Dockerfile $service
+                    docker tag api_${service} $IMAGE_NAME
                     docker push $IMAGE_NAME
                 done
 
@@ -53,17 +55,8 @@ jobs:
 
             - name: Deploy to Azure Container Instances (ACI)
               run: |
-                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --image ${{ env.IMAGE_NAME }} --dns-name-label ${{ env.ACI_DNS_LABEL }} --ports 8080 8001 8003 8004 8005 8006 --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-                services=("contribute" "data" "generator" "maps" "traitement")
-                ports=("8001" "8003" "8004" "8005" "8006")
-                for i in "${!services[@]}"
-                do
-                  SERVICE_NAME=${services[$i]}
-                  PORT=${ports[$i]}
-                  IMAGE_NAME="${{ secrets.AZURE_ACR_SERVER }}/$SERVICE_NAME:${{ github.sha }}"
-                  echo " Service : $SERVICE_NAME & Port : $PORT"
-                  az container create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }}-$SERVICE_NAME --image $IMAGE_NAME --dns-name-label ${{ env.ACI_DNS_LABEL }}-$SERVICE_NAME --ports $PORT --os-type Linux --cpu 1 --memory 1.5 --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-                done
+                az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci.yml
+
             - name: Verify deployment
               run: |
                 STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_GROUP }} --query "instanceView.state" -o tsv)
