@@ -50,11 +50,11 @@ jobs:
                     echo "La VM existe déjà."
                   fi
 
-                  - name: Get VM Public IP
-                  run: |
-                    echo "Récupération de l'IP publique de la VM..."
-                    VM_IP=$(az vm show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.VM_NAME }} --show-details --query publicIps -o tsv)
-                    echo "VM_IP=$VM_IP" >> $GITHUB_ENV
+            - name: Get VM Public IP
+              run: |
+                echo "Récupération de l'IP publique de la VM..."
+                VM_IP=$(az vm show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.VM_NAME }} --show-details --query publicIps -o tsv)
+                echo "VM_IP=$VM_IP" >> $GITHUB_ENV
     
             - name: Wait for VM to be ready
               run: |
