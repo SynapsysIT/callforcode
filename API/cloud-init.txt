@@ -1,0 +1,9 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose
+runcmd:
+  - systemctl start docker
+  - systemctl enable docker
+  - usermod -aG docker azureuser

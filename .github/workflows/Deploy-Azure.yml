@@ -12,9 +12,12 @@ permissions:
 env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
-    CLEAN_BRANCH_NAME: ${{ github.ref_name }}
-    IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
-    DOCKER_COMPOSE_FILE: ./API/docker-compose.yml
+    VM_NAME: callforcode-${{ github.ref_name }}
+    VM_ADMIN: azureuser
+    VM_IMAGE: UbuntuLTS
+    VM_SIZE: Standard_B2s
+    PUBLIC_IP_NAME: callforcode-${{ github.ref_name }}-ip
+    VM_IP: ''
 
 jobs:
     deploy:
@@ -24,13 +27,80 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v3
 
-            - name: Install Docker Compose
-              run: sudo apt-get update && sudo apt-get install -y docker-compose
-
             - name: Login to Azure with SP
               uses: azure/login@v1
               with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Create Azure VM if not exists
+              run: |
+                  echo "Vérification et création de la VM si nécessaire..."
+                  
+                  VM_EXISTS=$(az vm list --resource-group ${{ env.RESOURCE_GROUP }} --query "[?name=='${{ env.VM_NAME }}'].name" -o tsv)
+                  
+                  if [[ -z "$VM_EXISTS" ]]; then
+                    echo "Création de la VM..."
+                    az vm create --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.VM_NAME }} \
+                      --image ${{ env.VM_IMAGE }} --size ${{ env.VM_SIZE }} --admin-username ${{ env.VM_ADMIN }} \
+                      --admin-password ${{ secrets.AZURE_VM_PASSWORD }} --public-ip-address ${{ env.PUBLIC_IP_NAME }} --custom-data cloud-init.txt
+                  else
+                    echo "La VM existe déjà."
+                  fi
+
+                  - name: Get VM Public IP
+                  run: |
+                    echo "Récupération de l'IP publique de la VM..."
+                    VM_IP=$(az vm show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.VM_NAME }} --show-details --query publicIps -o tsv)
+                    echo "VM_IP=$VM_IP" >> $GITHUB_ENV
+    
+            - name: Wait for VM to be ready
+              run: |
+                    echo "Attente que la VM soit accessible en SSH..."
+                    sleep 30
+                    while ! nc -z ${{ env.VM_IP }} 22; do   
+                      echo "Attente..."
+                      sleep 5
+                    done
+                    echo "La VM est accessible."
+
+            - name: Install Docker and Docker Compose on VM
+              run: |
+                      echo "Installation de Docker et Docker Compose sur la VM..."
+                      sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} << 'EOF'
+                        sudo apt-get update -y
+                        sudo apt-get install -y docker.io
+                        sudo systemctl start docker
+                        sudo systemctl enable docker
+                        sudo usermod -aG docker $USER
+                        sudo apt-get install -y docker-compose
+                      EOF
+
+            - name: Push Docker Compose to VM
+              run: |
+                    echo "Envoi du fichier docker-compose.yml à la VM..."
+                    sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r API/docker-compose.yml ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/
+        
+            - name: Deploy Docker Compose on VM
+              run: |
+                echo "Déploiement de l'application avec Docker Compose..."
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} << 'EOF'
+                  cd /home/${{ env.VM_ADMIN }}/
+                  docker-compose down || true
+                  docker-compose up -d
+                EOF
+        
+            - name: Verify Deployment
+              run: |
+                echo "✅ Vérification que les conteneurs sont bien démarrés..."
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} "docker ps"
+
+
+
+
+
+
+
+
 
             - name: Login to Azure Container Registry (ACR)
               run: |
