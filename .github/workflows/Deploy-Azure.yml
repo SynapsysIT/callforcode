@@ -89,9 +89,6 @@ jobs:
                               memoryInGB: 1
                           ports:
                             - port: 8080
-                          environmentVariables:
-                            - name: START_DELAY
-                              value: "60"
                       - name: contribute
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ github.sha }}
@@ -154,22 +151,45 @@ jobs:
                           port: 8005
                         - protocol: TCP
                           port: 8006
-                    restartPolicy: Always
+                    restartPolicy: Never
                     imageRegistryCredentials:
                       - server: ${{ secrets.AZURE_ACR_SERVER }}
                         username: ${{ secrets.AZURE_ACR_USERNAME }}
                         password: ${{ secrets.AZURE_ACR_PASSWORD }}
                   EOF
                   cat API/aci_generated.yml
-
-            - name: Pause pour laisser le temps aux services de démarrer
-              run: |
-                echo "Attente de 30 secondes pour s'assurer que tous les services sont disponibles..."
-                  sleep 30
                 
             - name: Deploy to Azure Container Instances (ACI)
               run: |
                 az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
+
+                - name: Start Containers in Order
+                run: |
+                  echo "🚀 Démarrage des conteneurs dans l'ordre..."
+                  
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name contribute
+                  echo "✅ Contribute démarré, attente 10s..."
+                  sleep 10
+                  
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name data
+                  echo "✅ Data démarré, attente 10s..."
+                  sleep 10
+              
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name generator
+                  echo "✅ Generator démarré, attente 10s..."
+                  sleep 10
+              
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name maps
+                  echo "✅ Maps démarré, attente 10s..."
+                  sleep 10
+              
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name traitement
+                  echo "✅ Traitement démarré, attente 10s..."
+                  sleep 10
+              
+                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name nginx
+                  echo "✅ Nginx démarré en dernier !"
+              
 
             - name: Verify deployment
               run: |
