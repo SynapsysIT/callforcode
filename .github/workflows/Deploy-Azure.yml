@@ -89,6 +89,12 @@ jobs:
                               memoryInGB: 1
                           ports:
                             - port: 8080
+                          dependsOn:
+                            - contribute
+                            - data
+                            - generator
+                            - maps
+                            - traitement
                       - name: contribute
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ github.sha }}
