@@ -88,7 +88,7 @@ jobs:
                   --source-address-prefixes '*' \
                   --source-port-ranges '*' \
                   --destination-port-ranges 22 8001 8003 8004 8005 8006 8080
-            --destination-address-prefixes '*' \
+                  --destination-address-prefixes '*' \
 
 
             - name: Send only required project files to VM
