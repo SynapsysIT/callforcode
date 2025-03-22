@@ -77,7 +77,7 @@ jobs:
                 sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} "rm -rf /home/${{ env.VM_ADMIN }}/project"
 
                 # Copier uniquement les fichiers nécessaires
-                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r docker-compose.yml contribute data generator maps traitement nginx ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/project/
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r docker-compose.yml contribute data generator maps traitement nginx ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/API/
                 echo "Fichiers copiés avec succès."
 
       
