@@ -27,6 +27,9 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v3
 
+            - name: Install sshpass (for password-based SSH)
+              run: sudo apt-get install -y sshpass
+
             - name: Login to Azure with SP
               uses: azure/login@v1
               with:
@@ -99,46 +102,3 @@ jobs:
 
 
 
-
-
-
-            - name: Login to Azure Container Registry (ACR)
-              run: |
-                echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login ${{ secrets.AZURE_ACR_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} --password-stdin
-          
-            - name: Normalize branch name for DNS
-              run: |
-                CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | sed 's/^-*//g' | sed 's/-*$//g' | cut -c1-63)
-                echo "CLEAN_BRANCH_NAME=$CLEAN_BRANCH_NAME" >> $GITHUB_ENV
-              
-            - name: Delete existing container (if exists)
-              run: |
-                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --yes || true
-                
-          
-            - name: Build and push Docker image
-              run: |
-                export COMPOSE_DOCKER_CLI_BUILD=1
-                export DOCKER_BUILDKIT=1
-                docker-compose -f $DOCKER_COMPOSE_FILE build
-                docker-compose -f $DOCKER_COMPOSE_FILE push
-
-              
-            - name: Create ACI with Contribute first
-              run: |
-                az container create \
-                  --resource-group $RESOURCE_GROUP \
-                  --name my-api-container \
-                  --file $DOCKER_COMPOSE_FILE \
-                  --registry-login-server $ACR_SERVER \
-                   --registry-username ${{ secrets.AZURE_ACR_USERNAME }} \
-                  --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
-    
-            - name: Verify Deployment
-              run: |
-                    STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)
-                    echo "État du conteneur : $STATUS"
-                    if [[ "$STATUS" != "Running" ]]; then
-                        echo "Déploiement échoué, vérifiez les logs sur Azure."
-                        exit 1
-                    fi
