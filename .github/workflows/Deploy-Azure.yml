@@ -78,23 +78,25 @@ jobs:
                         sudo apt-get install -y docker-compose
                       EOF
 
-            - name: Push Docker Compose to VM
+            - name: Send all project files to VM
               run: |
-                    echo "Envoi du fichier docker-compose.yml à la VM..."
-                    sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r API/docker-compose.yml ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/
+                echo "Envoi de tous les fichiers du projet vers la VM..."
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} "rm -rf /home/${{ env.VM_ADMIN }}/*"
+                sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -r * ${{ env.VM_ADMIN }}@${{ env.VM_IP }}:/home/${{ env.VM_ADMIN }}/
+
         
             - name: Deploy Docker Compose on VM
               run: |
                 echo "Déploiement de l'application avec Docker Compose..."
                 sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} << 'EOF'
-                  cd /home/${{ env.VM_ADMIN }}/
+                  cd /home/${{ env.VM_ADMIN }}/API
                   docker-compose down || true
                   docker-compose up -d
                 EOF
         
             - name: Verify Deployment
               run: |
-                echo "✅ Vérification que les conteneurs sont bien démarrés..."
+                echo "Vérification que les conteneurs sont bien démarrés..."
                 sshpass -p "${{ secrets.AZURE_VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ env.VM_ADMIN }}@${{ env.VM_IP }} "docker ps"
 
 
