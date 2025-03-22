@@ -12,9 +12,10 @@ permissions:
 env:
     RESOURCE_GROUP: RG-CALL_FOR_CODE-MARCH
     LOCATION: francecentral
-    CONTAINER_GROUP: callforcode-${{ github.ref_name }}
+    CLEAN_BRANCH_NAME: ${{ github.ref_name }}
+    CONTAINER_GROUP: callforcode-${{ env.CLEAN_BRANCH_NAME }}
     IMAGE_NAME: ${{ secrets.AZURE_ACR_SERVER }}/myapp:${{ github.sha }}
-    ACI_DNS_LABEL: callforcode-${{ github.ref_name}}
+    ACI_DNS_LABEL: callforcode-${{ env.CLEAN_BRANCH_NAME}}
 
 jobs:
     deploy:
@@ -36,6 +37,11 @@ jobs:
               run: |
                 echo "${{ secrets.AZURE_ACR_PASSWORD }}" | docker login ${{ secrets.AZURE_ACR_SERVER }} -u ${{ secrets.AZURE_ACR_USERNAME }} --password-stdin
           
+            - name: Normalize branch name for DNS
+              run: |
+                CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | sed 's/^-*//g' | sed 's/-*$//g' | cut -c1-63)
+                echo "CLEAN_BRANCH_NAME=$CLEAN_BRANCH_NAME" >> $GITHUB_ENV
+              
 
             - name: Build and push Docker image
               run: |

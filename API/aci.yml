@@ -1,6 +1,6 @@
 apiVersion: '2021-07-01'
 location: francecentral
-name: callforcode-${{ github.ref_name }}
+name: callforcode-${{ env.CLEAN_BRANCH_NAME }}
 properties:
   containers:
     - name: nginx
@@ -36,7 +36,7 @@ properties:
   osType: Linux
   ipAddress:
     type: Public
-    dnsNameLabel: callforcode-${{ github.ref_name }}
+    dnsNameLabel: callforcode-${{ env.CLEAN_BRANCH_NAME }}
     ports:
       - protocol: TCP
         port: 8080
