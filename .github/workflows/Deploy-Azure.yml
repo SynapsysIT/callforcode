@@ -40,7 +40,11 @@ jobs:
                 CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | sed 's/^-*//g' | sed 's/-*$//g' | cut -c1-63)
                 echo "CLEAN_BRANCH_NAME=$CLEAN_BRANCH_NAME" >> $GITHUB_ENV
               
-
+            - name: Delete existing container (if exists)
+              run: |
+                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --yes || true
+                
+          
             - name: Build and push Docker image
               run: |
                 echo "Building API service from API/docker-compose.yml"
@@ -67,135 +71,70 @@ jobs:
                   docker push "$IMAGE_NAME"
                 done
 
-            - name: Delete existing container (if exists)
-              run: |
-                az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --yes || true
               
-            - name: Generate ACI YAML file
+            - name: Create ACI with Contribute first
               run: |
-                  cat <<EOF > API/aci_generated.yml
-                  apiVersion: '2021-07-01'
-                  location: francecentral
-                  name: callforcode-${{ env.CLEAN_BRANCH_NAME }}
-              
-                  properties:
-                    containers:
-                      - name: nginx
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/nginx:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8080
-                      - name: contribute
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8001
-                      - name: data
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/data:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8003
-                      - name: generator
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/generator:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8004
-                      - name: maps
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/maps:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8005
-                      - name: traitement
-                        properties:
-                          image: ${{ secrets.AZURE_ACR_SERVER }}/traitement:${{ github.sha }}
-                          resources:
-                            requests:
-                              cpu: 0.5
-                              memoryInGB: 1
-                          ports:
-                            - port: 8006
-                    osType: Linux
-                    ipAddress:
-                      type: Public
-                      dnsNameLabel: callforcode-${{ env.CLEAN_BRANCH_NAME }}
-                      ports:
-                        - protocol: TCP
-                          port: 8080
-                        - protocol: TCP
-                          port: 8001
-                        - protocol: TCP
-                          port: 8003
-                        - protocol: TCP
-                          port: 8004
-                        - protocol: TCP
-                          port: 8005
-                        - protocol: TCP
-                          port: 8006
-                    restartPolicy: Never
-                    imageRegistryCredentials:
-                      - server: ${{ secrets.AZURE_ACR_SERVER }}
-                        username: ${{ secrets.AZURE_ACR_USERNAME }}
-                        password: ${{ secrets.AZURE_ACR_PASSWORD }}
-                  EOF
-                  cat API/aci_generated.yml
-                
-            - name: Deploy to Azure Container Instances (ACI)
-              run: |
-                az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
+                echo "🚀 Création de l'ACI avec contribute..."
+                az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
+                  --image ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ env.GITHUB_SHA }} \
+                  --cpu 0.5 --memory 1 --ports 8001 --os-type Linux \
+                  --dns-name-label callforcode-${{ env.CLEAN_BRANCH_NAME }} \
+                  --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
 
-            - name: Start Containers in Order
+            - name: Wait for Contribute to be Running
               run: |
-                  echo "🚀 Démarrage des conteneurs dans l'ordre..."
-                  
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name contribute
-                  echo "✅ Contribute démarré, attente 10s..."
+                echo "Attente du démarrage de contribute..."
+                while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
+                  echo "En attente..."
                   sleep 10
-                  
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name data
-                  echo "✅ Data démarré, attente 10s..."
-                  sleep 10
-              
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name generator
-                  echo "✅ Generator démarré, attente 10s..."
-                  sleep 10
-              
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name maps
-                  echo "✅ Maps démarré, attente 10s..."
-                  sleep 10
-              
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name traitement
-                  echo "✅ Traitement démarré, attente 10s..."
-                  sleep 10
-              
-                  az container start --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --container-name nginx
-                  echo "✅ Nginx démarré en dernier !"
-              
+                done
+                echo "Contribute est maintenant en cours d'exécution."
 
-            - name: Verify deployment
+
+    
+            - name: Add services one by one
               run: |
-                STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)
-                if [[ "$STATUS" != "Running" ]]; then
-                    echo "Deployment failed! Check Azure logs."
-                    exit 1
-                fi
-                az container list --resource-group RG-CALL_FOR_CODE-MARCH --query "[].{Name:name, Status:instanceView.state}" --output table
+                    services=( "data" "generator" "maps" "traitement" )
+                    ports=( 8003 8004 8005 8006 )
+                    
+                    for i in "${!services[@]}"; do
+                      SERVICE=${services[$i]}
+                      PORT=${ports[$i]}
+    
+                      echo "Ajout du service $SERVICE avec le port $PORT..."
+                      az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
+                        --image ${{ secrets.AZURE_ACR_SERVER }}/$SERVICE:${{ github.sha }} \
+                        --cpu 0.5 --memory 1 --ports $PORT --os-type Linux \
+                        --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+    
+                      echo "Attente du démarrage de $SERVICE..."
+                      while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
+                        echo "En attente..."
+                        sleep 10
+                      done
+                      echo "$SERVICE est maintenant en cours d'exécution."
+                    done
+    
+            - name: Add Nginx last
+              run: |
+                    echo "Ajout de nginx en dernier..."
+                    az container create --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} \
+                      --image ${{secrets.AZURE_ACR_SERVER }}/nginx:${{ github.sha }} \
+                      --cpu 0.5 --memory 1 --ports 8080 --os-type Linux \
+                      --registry-login-server ${{ secrets.AZURE_ACR_SERVER }} --registry-username ${{ secrets.AZURE_ACR_USERNAME }} --registry-password ${{ secrets.AZURE_ACR_PASSWORD }}
+    
+                    echo "Attente du démarrage de nginx..."
+                    while [[ "$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)" != "Running" ]]; do
+                      echo "En attente..."
+                      sleep 10
+                    done
+                    echo "Nginx est maintenant en cours d'exécution."
+    
+            - name: Verify Deployment
+              run: |
+                    STATUS=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name callforcode-${{ env.CLEAN_BRANCH_NAME }} --query "instanceView.state" -o tsv)
+                    echo "État du conteneur : $STATUS"
+                    if [[ "$STATUS" != "Running" ]]; then
+                        echo "Déploiement échoué, vérifiez les logs sur Azure."
+                        exit 1
+                    fi
