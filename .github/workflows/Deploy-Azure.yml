@@ -89,12 +89,9 @@ jobs:
                               memoryInGB: 1
                           ports:
                             - port: 8080
-                          dependsOn:
-                            - contribute
-                            - data
-                            - generator
-                            - maps
-                            - traitement
+                          environmentVariables:
+                            - name: START_DELAY
+                              value: "60"
                       - name: contribute
                         properties:
                           image: ${{ secrets.AZURE_ACR_SERVER }}/contribute:${{ github.sha }}
@@ -164,7 +161,12 @@ jobs:
                         password: ${{ secrets.AZURE_ACR_PASSWORD }}
                   EOF
                   cat API/aci_generated.yml
-              
+
+            - name: Pause pour laisser le temps aux services de démarrer
+              run: |
+                echo "Attente de 30 secondes pour s'assurer que tous les services sont disponibles..."
+                  sleep 30
+                
             - name: Deploy to Azure Container Instances (ACI)
               run: |
                 az container create --resource-group ${{ env.RESOURCE_GROUP }} --file API/aci_generated.yml
