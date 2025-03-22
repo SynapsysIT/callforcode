@@ -76,18 +76,7 @@ jobs:
             - name: Open necessary ports in NSG
               run: |
                 echo "Ajout des règles NSG pour ouvrir les ports..."
-                az network nsg rule create \
-                  --resource-group RG-CALL_FOR_CODE-MARCH \
-                  --nsg-name callforcode-mainNSG \
-                  --name AllowAPIPorts \
-                  --priority 500 \
-                  --direction Inbound \
-                  --access Allow \
-                  --protocol Tcp \
-                  --source-address-prefixes '*' \
-                  --source-port-ranges '*' \
-                  --destination-port-ranges 22 8001 8003 8004 8005 8006 8080
-                  --destination-address-prefixes '*' \
+                az network nsg rule create --resource-group RG-CALL_FOR_CODE-MARCH --nsg-name callforcode-${{ github.ref_name }}NSG --name AllowAPIPorts --priority 500 --direction Inbound --access Allow --protocol Tcp --source-address-prefixes '*' --source-port-ranges '*' --destination-address-prefixes '*' --destination-port-ranges 8001 8003 8004 8005 8006 8080
 
 
             - name: Send only required project files to VM
