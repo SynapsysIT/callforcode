@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HydroReport by Greenoceros</title>
+  <!-- Feuille de style externe -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- OpenLayers CSS via unpkg -->
+  <link rel="stylesheet" href="https://unpkg.com/ol@latest/dist/ol.css">
+  <style>
+    /* Style de base */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 30px;
+      background-color: #f2f4f8;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+    }
+    .search-panel, .results-panel {
+      background-color: #d7e5f7;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1;
+    }
+    .results-panel {
+      background-color: #fff;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 600;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 20px;
+      text-transform: uppercase;
+    }
+    h3 {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+    .search-btn {
+      background-color: #00aa6c;
+      color: white;
+      padding: 10px 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    .search-btn:hover {
+      background-color: #008a56;
+    }
+    .wrong-data-btn {
+      background-color: #d92626;
+      color: white;
+      padding: 10px 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    .wrong-data-btn:hover {
+      background-color: #b31f1f;
+    }
+    .result-block {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .result-block label {
+      font-weight: normal;
+      margin-bottom: 2px;
+    }
+    .bottom-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .bottom-buttons button {
+      background-color: #b9eab0;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .bottom-buttons button:hover {
+      background-color: #a4d69f;
+    }
+    input[type="checkbox"],
+    input[type="radio"] {
+      margin-right: 8px;
+    }
+    
+    /* Cacher les panneaux Résultats et Carte par défaut */
+    .results-panel,
+    .map-panel {
+      display: none;
+    }
+    
+    /* Panneau de la carte en plein écran */
+    .map-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      z-index: 9999;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    /* Bouton de retour */
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10000;
+      background-color: rgba(255, 255, 255, 0.7);
+      padding: 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    HydroReport <small>by</small>
+    <img src="greenoceros-logo.png" alt="Greenoceros Logo" style="height: 40px; vertical-align: middle;">
+  </h1>
+  
+  <div class="container">
+    <!-- Panneau de recherche -->
+    <div class="search-panel" id="searchPanel">
+      <h2>Location to start from</h2>
+      <label>
+        GPS location (geolocated)
+        <input type="text" id="gpsInput" placeholder="ex. 13.5115963, 2.1253854">
+      </label>
+      <label>
+        or Enter a Country / Town name
+        <input type="text" id="locationInput" placeholder="ex. NIGER / Niamey">
+      </label>
+      
+      <h3>Water quality criteria</h3>
+      <label><input type="checkbox" checked> Clean water</label>
+      <label><input type="checkbox" checked> Unclean water</label>
+      <label><input type="checkbox"> Unknown</label>
+      
+      <h3>Moving means</h3>
+      <label><input type="radio" name="moving" checked> by feet</label>
+      <label><input type="radio" name="moving"> by bike</label>
+      <label><input type="radio" name="moving"> by car</label>
+      
+      <h3>Predictive research period</h3>
+      <label><input type="radio" name="period" checked> current</label>
+      <label><input type="radio" name="period"> short-term</label>
+      <label><input type="radio" name="period"> medium-term</label>
+      <label><input type="radio" name="period"> long-term</label>
+      
+      <!-- Appel à searchForWater() pour interroger l'API -->
+      <button class="search-btn" onclick="searchForWater()">SEARCH FOR WATER</button>
+      <button class="wrong-data-btn">Correct wrong data</button>
+    </div>
+    
+    <!-- Panneau des résultats -->
+    <div class="results-panel" id="resultsPanel">
+      <!-- Bouton de retour vers le panneau de recherche -->
+      <button class="back-btn" onclick="showSearchPanel()">&#8592;</button>
+      <h2>RESULTS</h2>
+      <!-- Premier bloc de résultat -->
+      <div class="result-block">
+        <h3>Nearest watering spot</h3>
+        <label>Name:</label>
+        <input type="text" placeholder="Name (if any)">
+        <label>Water quality:</label>
+        <input type="text" placeholder="Water quality">
+        <label>Water type (well, tap, river...):</label>
+        <input type="text" placeholder="Water type (well, tap, river...)">
+        <label>Town / Area:</label>
+        <input type="text" placeholder="Town / Area">
+        <label>Latitude / Longitude:</label>
+        <input type="text" placeholder="Latitude / Longitude">
+        <label>Distance / Direction:</label>
+        <input type="text" placeholder="Distance / Direction">
+      </div>
+      
+      <!-- Deuxième bloc de résultat -->
+      <div class="result-block">
+        <h3>Second watering spot</h3>
+        <label>Name:</label>
+        <input type="text" placeholder="Name (if any)">
+        <label>Water quality:</label>
+        <input type="text" placeholder="Water quality">
+        <label>Water type (well, tap, river...):</label>
+        <input type="text" placeholder="Water type (well, tap, river...)">
+        <label>Town / Area:</label>
+        <input type="text" placeholder="Town / Area">
+        <label>Latitude / Longitude:</label>
+        <input type="text" placeholder="Latitude / Longitude">
+        <label>Distance / Direction:</label>
+        <input type="text" placeholder="Distance / Direction">
+      </div>
+      
+      <div class="bottom-buttons">
+        <button onclick="showAllResults()">All results list</button>
+        <button onclick="showMap()">Generate Map</button>
+        <button>Generate Poster</button>
+      </div>
+    </div>
+    
+    <!-- Panneau de la carte en plein écran -->
+    <div class="map-panel" id="mapPanel">
+      <!-- Bouton de retour vers le panneau Résultats -->
+      <button class="back-btn" onclick="showResultsFromMap()">&#8592;</button>
+      <div id="map"></div>
+    </div>
+  </div>
+  
+  <!-- OpenLayers JS via unpkg -->
+  <script src="https://unpkg.com/ol@latest/dist/ol.js"></script>
+  <script>
+    // Fonction pour interroger l'API (ici simulée) avec les données saisies
+    function searchForWater() {
+      var gps = document.getElementById('gpsInput').value;
+      var locationName = document.getElementById('locationInput').value;
+      
+      // Exemple d'URL d'API (à adapter à votre API réelle)
+      // var apiUrl = 'https://example.com/api/search-water?gps=' + encodeURIComponent(gps) + '&location=' + encodeURIComponent(locationName);
+      // fetch(apiUrl)
+      //   .then(response => response.json())
+      //   .then(data => { processResults(data); })
+      //   .catch(error => { console.error(error); });
+      
+      // Pour l'exemple, on simule une réponse API
+      var simulatedResponse = {
+        results: [
+          {
+            name: "Water Spot A",
+            quality: "Clean water",
+            type: "River",
+            area: "Area A",
+            lat: 13.5116,
+            lon: 2.1254,
+            distance: "2km North"
+          },
+          {
+            name: "Water Spot B",
+            quality: "Unclean water",
+            type: "Well",
+            area: "Area B",
+            lat: 13.5216,
+            lon: 2.1354,
+            distance: "3km South"
+          }
+        ]
+      };
+      
+      // Simuler un délai de réponse
+      setTimeout(function() {
+        processResults(simulatedResponse);
+      }, 500);
+      
+      // Masquer le panneau de recherche et afficher les résultats
+      document.getElementById('searchPanel').style.display = 'none';
+      document.getElementById('resultsPanel').style.display = 'block';
+    }
+    
+    // Traiter la réponse de l'API et remplir les champs du panneau RESULTS
+    function processResults(data) {
+      // Sauvegarder les résultats pour l'affichage sur la carte
+      window.waterResults = data.results;
+      
+      // Remplir le premier bloc de résultat si disponible
+      if(data.results.length > 0) {
+        var res0 = data.results[0];
+        var block0 = document.querySelectorAll('.results-panel .result-block')[0];
+        var inputs0 = block0.getElementsByTagName('input');
+        inputs0[0].value = res0.name || "";
+        inputs0[1].value = res0.quality || "";
+        inputs0[2].value = res0.type || "";
+        inputs0[3].value = res0.area || "";
+        inputs0[4].value = res0.lat + ", " + res0.lon;
+        inputs0[5].value = res0.distance || "";
+      }
+      // Remplir le deuxième bloc de résultat si disponible
+      if(data.results.length > 1) {
+        var res1 = data.results[1];
+        var block1 = document.querySelectorAll('.results-panel .result-block')[1];
+        var inputs1 = block1.getElementsByTagName('input');
+        inputs1[0].value = res1.name || "";
+        inputs1[1].value = res1.quality || "";
+        inputs1[2].value = res1.type || "";
+        inputs1[3].value = res1.area || "";
+        inputs1[4].value = res1.lat + ", " + res1.lon;
+        inputs1[5].value = res1.distance || "";
+      }
+    }
+    
+    // Affiche le panneau Carte et initialise la carte via OpenLayers avec les marqueurs des résultats
+    function showMap() {
+      document.getElementById('resultsPanel').style.display = 'none';
+      document.getElementById('mapPanel').style.display = 'block';
+      
+      // Si la carte n'est pas initialisée, on la crée
+      if (!window.myMap) {
+        // Centrer la carte sur le premier résultat si disponible
+        var centerCoords;
+        if (window.waterResults && window.waterResults.length > 0) {
+          centerCoords = [window.waterResults[0].lon, window.waterResults[0].lat];
+        } else {
+          centerCoords = [2.1253854, 13.5115963];
+        }
+        window.myMap = new ol.Map({
+          target: 'map',
+          layers: [
+            new ol.layer.Tile({
+              source: new ol.source.OSM()
+            })
+          ],
+          view: new ol.View({
+            center: ol.proj.fromLonLat(centerCoords),
+            zoom: 13
+          })
+        });
+        // Créer une couche vectorielle pour les marqueurs avec un style de cercle bleu plus grand
+        window.markerSource = new ol.source.Vector({});
+        window.markerLayer = new ol.layer.Vector({
+          source: window.markerSource,
+          style: new ol.style.Style({
+            image: new ol.style.Circle({
+              radius: 15, // Rayon augmenté pour un cercle plus gros
+              fill: new ol.style.Fill({ color: 'rgba(0, 0, 255, 0.3)' }),
+              stroke: new ol.style.Stroke({ color: 'blue', width: 3 })
+            })
+          })
+        });
+        window.myMap.addLayer(window.markerLayer);
+      } else {
+        setTimeout(function() {
+          window.myMap.updateSize();
+        }, 300);
+      }
+      
+      // Supprimer les marqueurs existants
+      window.markerSource.clear();
+      
+      // Ajouter un marqueur pour chaque résultat
+      if(window.waterResults) {
+        window.waterResults.forEach(function(result) {
+          var markerFeature = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([result.lon, result.lat])),
+            name: result.name
+          });
+          window.markerSource.addFeature(markerFeature);
+        });
+      }
+    }
+    
+    // Retour au panneau RESULTS depuis le panneau Carte
+    function showResultsFromMap() {
+      document.getElementById('mapPanel').style.display = 'none';
+      document.getElementById('resultsPanel').style.display = 'block';
+    }
+    
+    // Fonction pour afficher la liste complète des résultats (à personnaliser)
+    function showAllResults() {
+      alert("Display all results.");
+    }
+  </script>
+</body>
+</html>
