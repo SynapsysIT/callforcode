@@ -54,18 +54,18 @@ async def index():
         "documentation": "Read the doc"
     }]
 
-@contribute.post('/', status_code=201)
-async def add_data(payload: Contribute):
-    if not payload.station_id and payload.longitude and payload.latitude:
-        existing_station = payload.find_nearest_station()
-        if existing_station:
-            payload.station_id = existing_station
-        else:
-            country_code = payload.get_country_from_coordinates(payload.Latitude, payload.Longitude)
-            payload.station_id = payload.generate_station_id(country_code)
-            payload.Country_Name = country_code
-    result = payload.insert_data_mongodb()
-    return {"inserted_id": str(result.inserted_id)}
+# @contribute.post('/', status_code=201)
+# async def add_data(payload: Contribute):
+#     if not payload.station_id and payload.longitude and payload.latitude:
+#         existing_station = payload.find_nearest_station()
+#         if existing_station:
+#             payload.station_id = existing_station
+#         else:
+#             country_code = payload.get_country_from_coordinates(payload.Latitude, payload.Longitude)
+#             payload.station_id = payload.generate_station_id(country_code)
+#             payload.Country_Name = country_code
+#     result = payload.insert_data_mongodb()
+#     return {"inserted_id": str(result.inserted_id)}
 
     # contribution = payload.model_dump()
     # contribution["chemicalElements"] = {f"{k}_value": v for k, v in contribution["chemicalElements"].items()}
@@ -86,10 +86,10 @@ async def add_data(payload: Contribute):
     # }
 
 
-@contribute.post('/post_photo', status_code=201)
-async def post_photo(payload: Contribute):
-    photo = payload.dict()
-    # do something
-    return {'id': 'return something'}
+# @contribute.post('/post_photo', status_code=201)
+# async def post_photo(payload: Contribute):
+#     photo = payload.dict()
+#     # do something
+#     return {'id': 'return something'}
 
 
