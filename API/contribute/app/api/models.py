@@ -1,9 +1,9 @@
 
 from typing import Dict, Optional
 from pydantic import BaseModel
-from pymongo import MongoClient
-import requests
-from geopy.distance import geodesic
+# from pymongo import MongoClient
+# import requests
+# from geopy.distance import geodesic
 
 
 class Contribute(BaseModel):

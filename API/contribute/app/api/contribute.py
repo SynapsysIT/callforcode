@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import Header, APIRouter
-from pymongo import MongoClient
+#from pymongo import MongoClient
 from api.models import Contribute
-import requests
+#import requests
 
 
 # mongo_user = "admin"
