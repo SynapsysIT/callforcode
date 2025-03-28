@@ -47,11 +47,14 @@ contribute = APIRouter()
 #         "non_potability_reason":"non_potability_reason"
 #         }]
 
-@contribute.get('/')
+@contribute.get('/', response_model=List[Contribute])
 async def index():
+   tt = Contribute(titre="LOL", station_id=None,Latitude=-22.3775, Longitude=-62.523611)
+   country_code = tt.get_country_from_coordinates()
    return [{
-        "title": "Welcome on the generator API",
-        "documentation": "Read the doc"
+        "title": "Welcome on the generator API 1",
+        "documentation": "Read the doc",
+        "tt":country_code
     }]
 
 # @contribute.post('/', status_code=201)

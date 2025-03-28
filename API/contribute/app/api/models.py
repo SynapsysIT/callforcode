@@ -1,71 +1,67 @@
 
 from typing import Dict, Optional
 from pydantic import BaseModel
-# from pymongo import MongoClient
-# import requests
+from pymongo import MongoClient
+import requests
 # from geopy.distance import geodesic
 
 
+mongo_user = "admin"
+mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
+mongo_host = "callforcode.technyvue.fr"
+mongo_port = 27017
+db_name = "measurements_db_loick"
+mongo_collection = "aggregated_measurements"
+client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+db = client[db_name]
+collection = db[mongo_collection]
+
+
 class Contribute(BaseModel):
-    title: str
-    documentation: str
+    station_id: Optional[str] = None
+    sample_date: Optional[str] = None
+    Longitude: Optional[float] = None
+    Latitude: Optional[float] = None
+    Boron_value: Optional[float] = None
+    Cadmium_value: Optional[float] = None
+    Oxygen_Demand_value: Optional[float] = None
+    Sulfur_value: Optional[float] = None
+    Silver_value: Optional[float] = None
+    Manganese_value: Optional[float] = None
+    Electrical_Conductance_value: Optional[float] = None
+    Selenium_value: Optional[float] = None
+    Water_value: Optional[float] = None
+    Nickel_value: Optional[float] = None
+    Cyanide_value: Optional[float] = None
+    Alkalinity_value: Optional[float] = None
+    Copper_value: Optional[float] = None
+    Sodium_value: Optional[float] = None
+    Mercury_value: Optional[float] = None
+    Magnesium_value: Optional[float] = None
+    Arsenic_value: Optional[float] = None
+    pH_value: Optional[float] = None
+    Oxidized_Nitrogen_value: Optional[float] = None
+    Iron_value: Optional[float] = None
+    Optical_value: Optional[float] = None
+    Potassium_value: Optional[float] = None
+    Calcium_value: Optional[float] = None
+    Hardness_value: Optional[float] = None
+    Chloride_value: Optional[float] = None
+    Lead_value: Optional[float] = None
+    Other_Nitrogen_value: Optional[float] = None
+    Chromium_value: Optional[float] = None
+    Zinc_value: Optional[float] = None
+    Potability: Optional[str] = None
+    Reasons: Optional[str] = None
+    Country_Name: Optional[str] = None
 
 
-
-
-
-
-# mongo_user = "admin"
-# mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
-# mongo_host = "callforcode.technyvue.fr"
-# mongo_port = 27017
-# db_name = "measurements_db_loick"
-# mongo_collection = "aggregated_measurements"
-# client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-
-# class Contribute(BaseModel):
-#     station_id: Optional[str] = None
-#     sample_date: Optional[str] = None
-#     Longitude: Optional[float] = None
-#     Latitude: Optional[float] = None
-#     Boron_value: Optional[float] = None
-#     Cadmium_value: Optional[float] = None
-#     Oxygen_Demand_value: Optional[float] = None
-#     Sulfur_value: Optional[float] = None
-#     Silver_value: Optional[float] = None
-#     Manganese_value: Optional[float] = None
-#     Electrical_Conductance_value: Optional[float] = None
-#     Selenium_value: Optional[float] = None
-#     Water_value: Optional[float] = None
-#     Nickel_value: Optional[float] = None
-#     Cyanide_value: Optional[float] = None
-#     Alkalinity_value: Optional[float] = None
-#     Copper_value: Optional[float] = None
-#     Sodium_value: Optional[float] = None
-#     Mercury_value: Optional[float] = None
-#     Magnesium_value: Optional[float] = None
-#     Arsenic_value: Optional[float] = None
-#     pH_value: Optional[float] = None
-#     Oxidized_Nitrogen_value: Optional[float] = None
-#     Iron_value: Optional[float] = None
-#     Optical_value: Optional[float] = None
-#     Potassium_value: Optional[float] = None
-#     Calcium_value: Optional[float] = None
-#     Hardness_value: Optional[float] = None
-#     Chloride_value: Optional[float] = None
-#     Lead_value: Optional[float] = None
-#     Other_Nitrogen_value: Optional[float] = None
-#     Chromium_value: Optional[float] = None
-#     Zinc_value: Optional[float] = None
-#     Potability: Optional[str] = None
-#     Reasons: Optional[str] = None
-#     Country_Name: Optional[str] = None
-
-#     def get_country_from_coordinates(self) -> str:
-#         response = requests.get(f"https://nominatim.openstreetmap.org/reverse?format=json&lat={self.Latitude}&lon={self.Longitude}")
-#         if response.status_code == 200:
-#             return response.json().get("address", {}).get("country_code", "UNK").upper()
-#         return "UNK"
+    def get_country_from_coordinates(self) -> str:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={self.Latitude}&lon={self.Longitude}"
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        if response.status_code == 200:
+            return response.json().get("address", {}).get("country", "Unknown").upper()
+        return "Unknown"
     
 #     def find_nearest_station(self) -> str:
 #         try:
