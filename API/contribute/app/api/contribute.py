@@ -35,17 +35,24 @@ contribute = APIRouter()
 #         )
 #     ]
 
-@contribute.get('/', response_model=List[Contribute])
+# @contribute.get('/', response_model=List[Contribute])
+# async def index():
+#     return [{
+#         "station_id": "station_id",
+#         "longitude": "longitude",
+#         "latitude":"latitude",
+#         "date":"date",
+#         "chemicalElements":"chemicalElements",
+#         "prediction_potability":"prediction_potability",
+#         "non_potability_reason":"non_potability_reason"
+#         }]
+
+@contribute.get('/')
 async def index():
-    return [{
-        "station_id": "station_id",
-        "longitude": "longitude",
-        "latitude":"latitude",
-        "date":"date",
-        "chemicalElements":"chemicalElements",
-        "prediction_potability":"prediction_potability",
-        "non_potability_reason":"non_potability_reason"
-        }]
+   return [{
+        "title": "Welcome on the generator API",
+        "documentation": "Read the doc"
+    }]
 
 @contribute.post('/', status_code=201)
 async def add_data(payload: Contribute):
