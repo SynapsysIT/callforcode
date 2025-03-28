@@ -1,7 +1,9 @@
 
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 from pydantic import BaseModel
 from pymongo import MongoClient
+import requests
+from geopy.distance import geodesic
 
 mongo_user = "admin"
 mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
@@ -13,21 +15,69 @@ client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mon
 
 class Contribute(BaseModel):
     station_id: Optional[str] = None
-    longitude: Optional[float] = None
-    latitude: Optional[float] = None
-    chemicalElements: Optional[Dict[str,str]] = None
-    prediction_potability: Optional[str] = None
-    non_potability_reason: Optional[str] = None
+    sample_date: Optional[str] = None
+    Longitude: Optional[float] = None
+    Latitude: Optional[float] = None
+    Boron_value: Optional[float] = None
+    Cadmium_value: Optional[float] = None
+    Oxygen_Demand_value: Optional[float] = None
+    Sulfur_value: Optional[float] = None
+    Silver_value: Optional[float] = None
+    Manganese_value: Optional[float] = None
+    Electrical_Conductance_value: Optional[float] = None
+    Selenium_value: Optional[float] = None
+    Water_value: Optional[float] = None
+    Nickel_value: Optional[float] = None
+    Cyanide_value: Optional[float] = None
+    Alkalinity_value: Optional[float] = None
+    Copper_value: Optional[float] = None
+    Sodium_value: Optional[float] = None
+    Mercury_value: Optional[float] = None
+    Magnesium_value: Optional[float] = None
+    Arsenic_value: Optional[float] = None
+    pH_value: Optional[float] = None
+    Oxidized_Nitrogen_value: Optional[float] = None
+    Iron_value: Optional[float] = None
+    Optical_value: Optional[float] = None
+    Potassium_value: Optional[float] = None
+    Calcium_value: Optional[float] = None
+    Hardness_value: Optional[float] = None
+    Chloride_value: Optional[float] = None
+    Lead_value: Optional[float] = None
+    Other_Nitrogen_value: Optional[float] = None
+    Chromium_value: Optional[float] = None
+    Zinc_value: Optional[float] = None
+    Potability: Optional[str] = None
+    Reasons: Optional[str] = None
+    Country_Name: Optional[str] = None
+
+    def get_country_from_coordinates(self) -> str:
+        response = requests.get(f"https://nominatim.openstreetmap.org/reverse?format=json&lat={self.Latitude}&lon={self.Longitude}")
+        if response.status_code == 200:
+            return response.json().get("address", {}).get("country_code", "UNK").upper()
+        return "UNK"
+    
+    def find_nearest_station(self, collection) -> str:
+        stations = collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
+        for station in stations:
+            station_coords = (station["Latitude"], station["Longitude"])
+            if geodesic((self.Latitude, self.Longitude), station_coords).meters < 10:
+                return station["station_id"]
+        return None
+    
+    def generate_station_id(self, collection) -> str:
+        count = collection.count_documents({"Country_Name": self.Country_Name}) + 1
+        return f"{self.Country_Name[:3].upper()}{count:04d}"
 
     def insert_data_mongodb(self) -> str:
         try:
             client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
             db = client[db_name]
-            collection = client[mongo_collection]
+            collection = db[mongo_collection]
         except Exception as e:
             print(f"Erreur de connexion à MongoDB: {e}")
-        data = self.dict()
-        result = mongo_collection.insert_one(data)
+        data = self.model_dump()
+        result = collection.insert_one(data)
         return str(result.inserted_id)
 
     def get_prediction_potability(self):

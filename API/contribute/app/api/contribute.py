@@ -21,38 +21,63 @@ import requests
 
 contribute = APIRouter()
 
+# @contribute.get('/', response_model=List[Contribute])
+# async def index():
+#     return [
+#         Contribute(
+#             station_id=None,
+#             longitude=None,
+#             latitude=None,
+#             date=None,
+#             chemicalElements=None,
+#             prediction_potability=None,
+#             non_potability_reason=None
+#         )
+#     ]
+
 @contribute.get('/', response_model=List[Contribute])
 async def index():
-    return [
-        Contribute(
-            station_id=None,
-            longitude=None,
-            latitude=None,
-            chemicalElements=None,
-            prediction_potability=None,
-            non_potability_reason=None
-        )
-    ]
+    return [{
+        "station_id": "station_id",
+        "longitude": "longitude",
+        "latitude":"latitude",
+        "date":"date",
+        "chemicalElements":"chemicalElements",
+        "prediction_potability":"prediction_potability",
+        "non_potability_reason":"non_potability_reason"
+        }]
 
 @contribute.post('/', status_code=201)
 async def add_data(payload: Contribute):
-    contribution = payload.model_dump()
-    contribution["chemicalElements"] = {f"{k}_value": v for k, v in contribution["chemicalElements"].items()}
+    if not payload.station_id and payload.longitude and payload.latitude:
+        existing_station = payload.find_nearest_station()
+        if existing_station:
+            payload.station_id = existing_station
+        else:
+            country_code = payload.get_country_from_coordinates(payload.Latitude, payload.Longitude)
+            payload.station_id = payload.generate_station_id(country_code)
+            payload.Country_Name = country_code
+    data = payload.model_dump()
+    result = payload.insert_data_mongodb()
+    return {"inserted_id": str(result.inserted_id)}
 
-    prediction_potability = payload.get_prediction_potability()
+    # contribution = payload.model_dump()
+    # contribution["chemicalElements"] = {f"{k}_value": v for k, v in contribution["chemicalElements"].items()}
 
-    if (contribution["longitude"] != None and contribution["latitude"] != None and contribution["station_id"] == None):
-        pass # Recup pays avec IA (seb) et création d'un nouvel id
+    # prediction_potability = payload.get_prediction_potability()
+
+    # if (contribution["longitude"] != None and contribution["latitude"] != None and contribution["station_id"] == None):
+    #     pass # Recup pays avec IA (seb) et création d'un nouvel id
     
 
-    db_id = payload.insert_data_mongodb()
+    # db_id = payload.insert_data_mongodb()
 
-    return {
-        "message": "Contribution received",
-        "db_id": db_id,
-        "prediction_potability": prediction_potability,
-        "debug_watson": prediction_potability
-    }
+    # return {
+    #     "message": "Contribution received",
+    #     "db_id": db_id,
+    #     "prediction_potability": prediction_potability,
+    #     "debug_watson": prediction_potability
+    # }
 
 
 @contribute.post('/post_photo', status_code=201)
