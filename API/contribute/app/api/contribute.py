@@ -57,7 +57,6 @@ async def add_data(payload: Contribute):
             country_code = payload.get_country_from_coordinates(payload.Latitude, payload.Longitude)
             payload.station_id = payload.generate_station_id(country_code)
             payload.Country_Name = country_code
-    data = payload.model_dump()
     result = payload.insert_data_mongodb()
     return {"inserted_id": str(result.inserted_id)}
 

@@ -57,7 +57,13 @@ class Contribute(BaseModel):
             return response.json().get("address", {}).get("country_code", "UNK").upper()
         return "UNK"
     
-    def find_nearest_station(self, collection) -> str:
+    def find_nearest_station(self) -> str:
+        try:
+            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+            db = client[db_name]
+            collection = db[mongo_collection]
+        except Exception as e:
+            print(f"Erreur de connexion à MongoDB: {e}")
         stations = collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
         for station in stations:
             station_coords = (station["Latitude"], station["Longitude"])
@@ -65,7 +71,13 @@ class Contribute(BaseModel):
                 return station["station_id"]
         return None
     
-    def generate_station_id(self, collection) -> str:
+    def generate_station_id(self) -> str:
+        try:
+            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+            db = client[db_name]
+            collection = db[mongo_collection]
+        except Exception as e:
+            print(f"Erreur de connexion à MongoDB: {e}")
         count = collection.count_documents({"Country_Name": self.Country_Name}) + 1
         return f"{self.Country_Name[:3].upper()}{count:04d}"
 
