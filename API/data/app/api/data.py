@@ -1,33 +1,75 @@
-from typing import List
-from fastapi import Header, APIRouter
-
-from api.models import Data
-
-
+from fastapi import APIRouter, HTTPException
+from api.database import MeasurementsDb, StationDb
+import math
 
 data = APIRouter()
 
+def clean_document(doc):
+    """Remplace NaN, inf et -inf par None dans un dictionnaire MongoDB."""
+    for key, value in doc.items():
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            doc[key] = None  # ✅ JSON-compatible
+    return doc
 
 
-@data.get('/', response_model=List[Data])
-async def index():
-   return [{
-        "title": "Welcome on the Data API",
-        "documentation": "Read the DOC"
-        
-    }]
-
-@data.post('/', status_code=201)
-async def add_data(payload: Data):
-    contribution = payload.dict()
-    # append to db
-    return {'id': "ID to return"}
+@data.get("/stations/{results_nb}")
+async def get_stations(results_nb: int):
+    stations = list(MeasurementsDb().measurements_collection.find().limit(results_nb))
+    for station in stations:
+        station["_id"] = str(station["_id"])  # Convertir ObjectId en string
+        clean_document(station)  # Nettoyer NaN/inf dans le document
+    return stations
 
 
-@data.post('/post_photo', status_code=201)
-async def post_photo(payload: Data):
-    photo = payload.dict()
-    # do something
-    return {'id': 'return something'}
+@data.get('/stations_meta/')
+async def get_station_meta(): 
+    stations = list(StationDb().station_collection.find().limit(100))
+    for station in stations:
+        station["_id"] = str(station["_id"])  # Convertir ObjectId en string
+        clean_document(station)  # Nettoyer NaN/inf dans le document
+    return stations
 
 
+@data.get('/station/{station_id}')
+async def get_station_info(station_id: str): 
+    station = StationDb().station_collection.find_one({"station_id": station_id})
+    if not station:
+        raise HTTPException(status_code=404, detail="Station not found")
+    station["_id"] = str(station["_id"])
+    clean_document(station)  # Nettoyer NaN/inf dans le document
+    return station
+
+
+@data.get('/get_closest_stations/')
+async def get_closest_stations(lat: str, lon: str, max_distance: int = 5000):
+    try:
+        # Convertir lat/lon en float, remplacer la virgule par un point
+        lat = float(lat.replace(",", "."))
+        lon = float(lon.replace(",", "."))
+        max_distance = max_distance * 1000  # Converti distance en km en m
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Latitude and longitude must be valid numbers.")
+
+    # Recherche des stations proches avec la requête géospatiale
+    nearby_stations = StationDb().station_collection.find({
+        "location": {
+            "$near": {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat]  # Longitude en premier !
+                },
+                "$maxDistance": max_distance  # Distance max en mètres
+            }
+        }
+    })
+
+    results = []
+    for station in nearby_stations:
+        station["_id"] = str(station["_id"])  # Convertir ObjectId en string
+        clean_document(station)  # Nettoyer NaN/inf dans le document
+        results.append(station)
+
+    if not results:
+        raise HTTPException(status_code=404, detail="Aucune station trouvée à proximité.")
+
+    return {"nb": len(results), "results": results}
