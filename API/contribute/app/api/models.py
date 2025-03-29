@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 from pymongo import MongoClient
 import requests
-# from geopy.distance import geodesic
+from geopy.distance import geodesic
 
 
 mongo_user = "admin"
@@ -58,95 +58,129 @@ class Contribute(BaseModel):
 
     def get_country_from_coordinates(self) -> str:
         url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={self.Latitude}&lon={self.Longitude}"
+        print(url)
         response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         if response.status_code == 200:
             return response.json().get("address", {}).get("country", "Unknown").upper()
-        return "Unknown"
+        return response.text
     
-#     def find_nearest_station(self) -> str:
-#         try:
-#             client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-#             db = client[db_name]
-#             collection = db[mongo_collection]
-#         except Exception as e:
-#             print(f"Erreur de connexion à MongoDB: {e}")
-#         stations = collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
-#         for station in stations:
-#             station_coords = (station["Latitude"], station["Longitude"])
-#             if geodesic((self.Latitude, self.Longitude), station_coords).meters < 10:
-#                 return station["station_id"]
-#         return None
+    def find_nearest_station(self) -> str:
+        try:
+            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+            db = client[db_name]
+            collection = db[mongo_collection]
+        except Exception as e:
+            print(f"Erreur de connexion à MongoDB: {e}")
+            return None
+        
+        stations = collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
+
+        try:
+            user_lat = float(str(self.Latitude).replace(',', '.'))
+            user_lon = float(str(self.Longitude).replace(',', '.'))
+        except ValueError as e:
+            print(f"Erreur de conversion des coordonnées: {e}")
+            return None
+
+        for station in stations:
+            try:
+                station_lat = float(str(station["Latitude"]).replace(',', '.'))
+                station_lon = float(str(station["Longitude"]).replace(',', '.'))
+                station_coords = (station_lat, station_lon)
+                
+                if geodesic((user_lat, user_lon), station_coords).meters < 10:
+                    return station["station_id"]
+            except ValueError as e:
+                print(f"Erreur de conversion pour la station {station.get('station_id', 'unknown')}: {e}")
+        
+        return None
     
-#     def generate_station_id(self) -> str:
-#         try:
-#             client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-#             db = client[db_name]
-#             collection = db[mongo_collection]
-#         except Exception as e:
-#             print(f"Erreur de connexion à MongoDB: {e}")
-#         count = collection.count_documents({"Country_Name": self.Country_Name}) + 1
-#         return f"{self.Country_Name[:3].upper()}{count:04d}"
+    def generate_station_id(self) -> str:
+        if not self.Country_Name:
+            print("Erreur: Aucun pays spécifié pour générer l'ID de la station.")
+            return None
 
-#     def insert_data_mongodb(self) -> str:
-#         try:
-#             client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-#             db = client[db_name]
-#             collection = db[mongo_collection]
-#         except Exception as e:
-#             print(f"Erreur de connexion à MongoDB: {e}")
-#         data = self.model_dump()
-#         result = collection.insert_one(data)
-#         return str(result.inserted_id)
+        try:
+            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+            db = client[db_name]
+            collection = db[mongo_collection]
+        except Exception as e:
+            print(f"Erreur de connexion à MongoDB: {e}")
+            return None
+        prefix = self.Country_Name[:3].upper()
+        last_station = collection.find_one(
+            {"station_id": {"$regex": f"^{prefix}"}},
+            sort=[("station_id", -1)]
+        )
 
-#     def get_prediction_potability(self):
-#         THRESHOLDS = {
-#             "Fluoride": (0.1, 1.5), "Cadmium": (0, 0.005), "Sodium": (0, 200), "Boron": (0, 1.5),
-#             "Selenium": (0, 0.04), "Nickel": (0, 0.07), "Barium": (0, 1.3), "Lead": (0, 0.01),
-#             "Arsenic": (0, 0.01), "Chromium": (0, 0.05), "Zinc": (0, 5), "Copper": (0, 2),
-#             "Mercury": (0, 0.001), "Uranium": (0, 0.03), "Aluminium": (0, 0.2), "Iron": (0, 0.3),
-#             "Antimony": (0, 0.02), "Cyanide": (0, 0.07), "PAH": (0, 0.0001), "Halocarbon": (0, 0.0001),
-#             "Phosphorus": (0, 5), "Manganese": (0, 0.4), "Potassium": (0, 100), "Bromine": (0, 1),
-#             "Strontium": (0, 4), "Silicon": (0, 100), "Gallium": (0, 5), "Rubidium": (0, 5),
-#             "Lanthanum": (0, 2), "Thallium": (0, 0.002), "Lithium": (0, 2.5), "Vanadium": (0, 0.1),
-#             "Magnesium": (0, 50), "Bismuth": (0, 0.1), "Molybdenum": (0, 0.07), "Tin": (0, 2),
-#             "Phytoplankton": (0, 10), "Dissolved_Gas": (5, 15), "Electrical_Conductance": (0, 2500),
-#             "Hardness": (30, 500), "pH": (6.5, 8.5), "Temperature": (0, 25)
-#         }
+        if last_station and "station_id" in last_station:
+            last_number = int(last_station["station_id"][3:])
+            new_number = last_number + 1
+        else:
+            new_number = 1
 
-#         non_potable_reasons = []
-#         measured_elements = 0
+        return f"{prefix}{new_number:04d}"
 
-#         if not self.chemicalElements:
-#             return "No chemical elements provided"
+    def insert_data_mongodb(self) -> str:
+        try:
+            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+            db = client[db_name]
+            collection = db[mongo_collection]
+        except Exception as e:
+            print(f"Erreur de connexion à MongoDB: {e}")
+        data = self.model_dump()
+        result = collection.insert_one(data)
+        return str(result.inserted_id)
 
-#         for element, (min_thresholds, max_thresholds) in THRESHOLDS.items():
-#             key_value = f"{element}_value"
-#             key_unit = f"{element}_unit"
+    def get_prediction_potability(self):
+        THRESHOLDS = {
+            "Fluoride": (0.1, 1.5), "Cadmium": (0, 0.005), "Sodium": (0, 200), "Boron": (0, 1.5),
+            "Selenium": (0, 0.04), "Nickel": (0, 0.07), "Barium": (0, 1.3), "Lead": (0, 0.01),
+            "Arsenic": (0, 0.01), "Chromium": (0, 0.05), "Zinc": (0, 5), "Copper": (0, 2),
+            "Mercury": (0, 0.001), "Uranium": (0, 0.03), "Aluminium": (0, 0.2), "Iron": (0, 0.3),
+            "Antimony": (0, 0.02), "Cyanide": (0, 0.07), "PAH": (0, 0.0001), "Halocarbon": (0, 0.0001),
+            "Phosphorus": (0, 5), "Manganese": (0, 0.4), "Potassium": (0, 100), "Bromine": (0, 1),
+            "Strontium": (0, 4), "Silicon": (0, 100), "Gallium": (0, 5), "Rubidium": (0, 5),
+            "Lanthanum": (0, 2), "Thallium": (0, 0.002), "Lithium": (0, 2.5), "Vanadium": (0, 0.1),
+            "Magnesium": (0, 50), "Bismuth": (0, 0.1), "Molybdenum": (0, 0.07), "Tin": (0, 2),
+            "Phytoplankton": (0, 10), "Dissolved_Gas": (5, 15), "Electrical_Conductance": (0, 2500),
+            "Hardness": (30, 500), "pH": (6.5, 8.5), "Temperature": (0, 25)
+        }
 
-#             if key_value in self.chemicalElements:
-#                 measured_elements +=1
-#                 value = self.chemicalElements[key_value]
+        non_potable_reasons = []
+        measured_elements = 0
 
-#                 if self.chemicalElements[key_unit] == "µ*":
-#                     value /= 1000
+        if not self.chemicalElements:
+            return "No chemical elements provided"
 
-#                 if min_thresholds is not None and value < min_thresholds:
-#                     non_potable_reasons.append(f"{element} trop bas ({value}, min {min_thresholds})")
+        for element, (min_thresholds, max_thresholds) in THRESHOLDS.items():
+            key_value = f"{element}_value"
+            key_unit = f"{element}_unit"
 
-#                 if max_thresholds is not None and value > max_thresholds:
-#                     non_potable_reasons.append(f"{element} dépasse {max_thresholds} - value : ({value})")
+            if key_value in self.chemicalElements:
+                measured_elements +=1
+                value = self.chemicalElements[key_value]
 
-#         if len(non_potable_reasons) > 0:
-#             potability_status = "Not potable"
-#         elif measured_elements < 5:
-#             potability_status = "Undetermined"
-#         else:
-#             potability_status = "Potable"
+                if self.chemicalElements[key_unit] == "µ*":
+                    value /= 1000
 
-#         return {
-#             "potability_status": potability_status, 
-#             "non_potable_reasons": non_potable_reasons
-#         }
+                if min_thresholds is not None and value < min_thresholds:
+                    non_potable_reasons.append(f"{element} trop bas ({value}, min {min_thresholds})")
+
+                if max_thresholds is not None and value > max_thresholds:
+                    non_potable_reasons.append(f"{element} dépasse {max_thresholds} - value : ({value})")
+
+        if len(non_potable_reasons) > 0:
+            potability_status = "Not potable"
+        elif measured_elements < 5:
+            potability_status = "Undetermined"
+        else:
+            potability_status = "Potable"
+
+        return {
+            "potability_status": potability_status, 
+            "non_potable_reasons": non_potable_reasons
+        }
 
                 
 

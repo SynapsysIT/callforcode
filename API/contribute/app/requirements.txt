@@ -12,3 +12,4 @@ typing_extensions==4.12.2
 uvicorn==0.34.0
 pymongo==4.11.3
 requests==2.32.2
+geopy==2.4.1
