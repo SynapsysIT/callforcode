@@ -1,6 +1,5 @@
 from typing import List
 from fastapi import Header, APIRouter
-
 from api.models import Generator
 
 
@@ -8,24 +7,14 @@ generator = APIRouter()
 
 
 
-@generator.get('/', response_model=List[Generator])
-async def index():
-   return [{
-        "title": "Welcome on the generator API",
-        "documentation": "Read the doc"
-    }]
+@generator.get('/')
+async def index(station_id: str, language: str="English"):
+   gen = Generator(station_id=station_id, language=language)
+   rapport = gen.generate_rapport()
+   return rapport
 
-@generator.post('/', status_code=201)
-async def add_data(payload: Generator):
-    contribution = payload.dict()
-    # append to db
-    return {'id': "ID to return"}
-
-
-@generator.post('/post_photo', status_code=201)
-async def post_photo(payload: Generator):
-    photo = payload.dict()
-    # do something
-    return {'id': 'return something'}
-
-
+@generator.get('/details')
+async def details(station_id: str, language: str="English"):
+   station = Generator(station_id=station_id, language=language)
+   details=station.generate_station_details()
+   return details
