@@ -2,11 +2,12 @@ from typing import List, Optional
 from pydantic import BaseModel
 from api.granite import Granite
 from api.database import MeasurementsDb, StationDb
+import requests
 
 
 class Generator(BaseModel):
     station_id: Optional[str]=None
-    language: Optional[str]=None
+    language: Optional[str]="English"
     date_1: Optional[str]=None
     date_2: Optional[str]=None
     date_3: Optional[str]=None
@@ -52,9 +53,9 @@ class Generator(BaseModel):
         The introduction should be between 300 and 500 words.
         Use Latex language
         """
-        return granite.ask(prompt)
+        return granite.generate(prompt)
     
-    def generation_rapport_prediction(self) -> str:
+    def generate_rapport_prediction(self) -> str:
         granite = Granite()
         prompt = f"""
         Write a detailed section for a technical report on predicting the potability of water in
@@ -73,7 +74,7 @@ class Generator(BaseModel):
         The introduction should be between 300 and 500 words.
         Use Latex 
         """
-        return granite.ask(prompt)
+        return granite.generate(prompt)
     
     
     def generate_rapport_conclusion(self) -> str:
@@ -93,12 +94,42 @@ class Generator(BaseModel):
         The introduction should be between 300 and 500 words.
         Use Latex language
         """
-        return granite.ask(prompt)
+        return granite.generate(prompt)
     
     def generate_rapport(self) -> str:
         self.prepare_station_meta()
-        introduction = self.generate_rapport_introduction()
-        prediction = self.generation_rapport_prediction()
-        conclusion = self.generate_rapport_conclusion()
+
+        introduction_brut = self.generate_rapport_introduction()
+        introduction = introduction_brut["results"][0]["generated_text"]
+        prediction_brut = self.generate_rapport_prediction()
+        prediction = prediction_brut["results"][0]["generated_text"]
+        conclusion_brut = self.generate_rapport_conclusion()
+        conclusion = conclusion_brut["results"][0]["generated_text"]
         rapport = introduction + prediction + conclusion
         return rapport
+    
+    def generate_station_details(self) -> str:
+        url = f"http://nginx:8000/data/station/{self.station_id}"
+        response = requests.get(url=url)
+        if response.status_code == 200:
+            granite = Granite()
+            prompt = f"""
+            Generate a detailed report on the water quality of a monitoring station based on the following information:
+
+            ### Station Information:
+            {response.text} 
+
+            ### **Report Requirements:**  
+            - Provide a **structured** analysis of the station’s water quality.  
+            - Explain the **observed trends** based on the latest measurements.  
+            - Discuss potential **environmental influences** affecting water quality.  
+            - Offer **recommendations** for maintaining or improving water quality.  
+            - Ensure the report is **300-500 words long** and written in a **professional and scientific tone**.
+            The output language should be {self.language} and the tone should be formal.
+            The introduction should be between 300 and 500 words.
+            Use Latex language
+            """
+            details = granite.generate(prompt)
+            return details["results"][0]["generated_text"]
+        else:
+            return "Erreur"
