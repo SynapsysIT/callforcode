@@ -73,3 +73,29 @@ async def get_closest_stations(lat: str, lon: str, max_distance: int = 5000):
         raise HTTPException(status_code=404, detail="Aucune station trouvée à proximité.")
 
     return {"nb": len(results), "results": results}
+
+
+@data.get('/get_station_measurements/{station_id}')
+async def get_station_measurements(station_id: str):
+    station_measurements = list(MeasurementsDb().measurements_collection.find({"station_id": station_id}))
+    if not station_measurements:
+        raise HTTPException(status_code=404, detail="Station measurements not found")
+    for station in station_measurements:
+        station["_id"] = str(station["_id"])  # Convertir ObjectId en string
+        clean_document(station)  # Nettoyer NaN/inf dans le document
+
+    return {"nb": len(station_measurements), "station_measurements": station_measurements}
+
+
+@data.get('/get_stations_last_infos/{station_id}/')
+async def get_station_last_info(station_id: str):
+    station_last_info_list = list(MeasurementsDb().measurements_collection.find({"station_id": station_id}))
+    station_info_list = station_last_info_list[len(station_last_info_list) - 10:]
+    if not station_info_list:
+        raise HTTPException(statu_code=404, detail='Station last infos not found')
+    
+    for station in station_info_list:
+        station['_id']= str(station['_id'])
+        clean_document(station)        
+
+    return station_info_list
