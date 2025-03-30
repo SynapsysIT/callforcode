@@ -7,16 +7,6 @@ from geopy.distance import geodesic
 from api.database import MeasurementsDb
 
 
-# mongo_user = "admin"
-# mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
-# mongo_host = "callforcode.technyvue.fr"
-# mongo_port = 27017
-# db_name = "measurements_db_loick"
-# mongo_collection = "aggregated_measurements"
-# client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-# db = client[db_name]
-# collection = db[mongo_collection]
-
 
 class Contribute(BaseModel):
     station_id: Optional[str] = None
