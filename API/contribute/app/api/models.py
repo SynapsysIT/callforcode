@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 import requests
 from geopy.distance import geodesic
-from database import MeasurementsDb
+from api.database import MeasurementsDb
 
 
 # mongo_user = "admin"
