@@ -8,7 +8,7 @@ generator = APIRouter()
 
 
 @generator.get('/')
-async def index(station_id: str, language: str):
+async def index(station_id: str, language: str="English"):
    gen = Generator(station_id=station_id, language=language)
    rapport = gen.generate_rapport()
    return rapport
