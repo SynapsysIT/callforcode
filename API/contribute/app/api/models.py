@@ -4,17 +4,18 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 import requests
 from geopy.distance import geodesic
+from database import MeasurementsDb
 
 
-mongo_user = "admin"
-mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
-mongo_host = "callforcode.technyvue.fr"
-mongo_port = 27017
-db_name = "measurements_db_loick"
-mongo_collection = "aggregated_measurements"
-client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-db = client[db_name]
-collection = db[mongo_collection]
+# mongo_user = "admin"
+# mongo_password = "secretDZHAUIZDNAZDZADQLWMML1213"
+# mongo_host = "callforcode.technyvue.fr"
+# mongo_port = 27017
+# db_name = "measurements_db_loick"
+# mongo_collection = "aggregated_measurements"
+# client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
+# db = client[db_name]
+# collection = db[mongo_collection]
 
 
 class Contribute(BaseModel):
@@ -64,16 +65,8 @@ class Contribute(BaseModel):
             return response.json().get("address", {}).get("country", "Unknown").upper()
         return response.text
     
-    def find_nearest_station(self) -> str:
-        try:
-            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-            db = client[db_name]
-            collection = db[mongo_collection]
-        except Exception as e:
-            print(f"Erreur de connexion à MongoDB: {e}")
-            return None
-        
-        stations = collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
+    def find_nearest_station(self) -> str:      
+        stations = MeasurementsDb().measurements_collection.find({"Latitude": {"$ne": None}, "Longitude": {"$ne": None}})
 
         try:
             user_lat = float(str(self.Latitude).replace(',', '.'))
@@ -100,15 +93,8 @@ class Contribute(BaseModel):
             print("Erreur: Aucun pays spécifié pour générer l'ID de la station.")
             return None
 
-        try:
-            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-            db = client[db_name]
-            collection = db[mongo_collection]
-        except Exception as e:
-            print(f"Erreur de connexion à MongoDB: {e}")
-            return None
         prefix = self.Country_Name[:3].upper()
-        last_station = collection.find_one(
+        last_station = MeasurementsDb().measurements_collection.find_one(
             {"station_id": {"$regex": f"^{prefix}"}},
             sort=[("station_id", -1)]
         )
@@ -122,14 +108,8 @@ class Contribute(BaseModel):
         return f"{prefix}{new_number:04d}"
 
     def insert_data_mongodb(self) -> str:
-        try:
-            client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}:{mongo_port}?authSource=admin")
-            db = client[db_name]
-            collection = db[mongo_collection]
-        except Exception as e:
-            print(f"Erreur de connexion à MongoDB: {e}")
         data = self.model_dump()
-        result = collection.insert_one(data)
+        result = MeasurementsDb().measurements_collection.insert_one(data)
         return str(result.inserted_id)
 
     def get_prediction_potability(self):
