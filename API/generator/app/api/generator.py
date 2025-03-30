@@ -8,10 +8,9 @@ generator = APIRouter()
 
 
 
-@generator.get('/', response_model=List[Generator])
+@generator.get('/')
 async def index():
-   return [{
-        "title": "Welcome on the generator API",
-        "documentation": "Read the doc"
-    }]
+   gen = Generator(station_id="ARG00006", language="French")
+   rapport = gen.generate_rapport()
+   return rapport
 
