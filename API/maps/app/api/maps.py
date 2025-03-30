@@ -2,31 +2,26 @@ from typing import List
 from fastapi import Header, APIRouter
 
 from api.models import Maps
+from api.map_generator import MapGenerator
 
 
 
 maps = APIRouter()
 
+map_generator=MapGenerator()
 
 
-@maps.get('/', response_model=List[Maps])
+@maps.get('/')
 async def index():
    return [{
         "title": "Welcome to the Maps API",
         "documentation": "Read the doc"
     }]
 
-@maps.post('/', status_code=201)
-async def add_data(payload: Maps):
-    contribution = payload.dict()
-    # append to db
-    return {'id': "ID to return"}
 
-
-@maps.post('/post_photo', status_code=201)
-async def post_photo(payload: Maps):
-    photo = payload.dict()
-    # do something
-    return {'id': 'return something'}
+@maps.get('/generate_map/', status_code=201)
+async def get_geopandas():
+    map_generator.generate_map()
+    return {"status": "Geopanda map generated"}
 
 
