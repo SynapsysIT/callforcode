@@ -130,25 +130,17 @@ class Contribute(BaseModel):
         non_potable_reasons = []
         measured_elements = 0
 
-        if not self.chemicalElements:
-            return "No chemical elements provided"
-
         for element, (min_thresholds, max_thresholds) in THRESHOLDS.items():
-            key_value = f"{element}_value"
-            key_unit = f"{element}_unit"
-
-            if key_value in self.chemicalElements:
-                measured_elements +=1
-                value = self.chemicalElements[key_value]
-
-                if self.chemicalElements[key_unit] == "µ*":
-                    value /= 1000
-
-                if min_thresholds is not None and value < min_thresholds:
+            key = f"{element}_value"
+            value = getattr(self, key, None)
+        
+            if value is not None:
+                measured_elements += 1
+                if value < min_thresholds:
                     non_potable_reasons.append(f"{element} trop bas ({value}, min {min_thresholds})")
-
-                if max_thresholds is not None and value > max_thresholds:
-                    non_potable_reasons.append(f"{element} dépasse {max_thresholds} - value : ({value})")
+                if value > max_thresholds:
+                    non_potable_reasons.append(f"{element} dépasse {max_thresholds} - valeur : ({value})")
+    
 
         if len(non_potable_reasons) > 0:
             potability_status = "Not potable"
@@ -157,10 +149,7 @@ class Contribute(BaseModel):
         else:
             potability_status = "Potable"
 
-        return {
-            "potability_status": potability_status, 
-            "non_potable_reasons": non_potable_reasons
-        }
+        return potability_status
 
                 
 

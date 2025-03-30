@@ -45,7 +45,7 @@ def add_data(payload: Contribute):
 
     contribution = payload.model_dump()
 
-    prediction_potability = payload.get_prediction_potability()
+    payload.Potability = payload.get_prediction_potability()
 
     if (contribution["Longitude"] != None and contribution["Latitude"] != None and contribution["station_id"] == None):
         contribution["station_id"] = payload.find_nearest_station()
@@ -59,7 +59,7 @@ def add_data(payload: Contribute):
     return {
         "message": "Contribution received",
         "db_id": "db_id",
-        "prediction_potability": prediction_potability,
-        "dump": contribution
+        "prediction_potability": payload.Potability,
+        "dump": payload
    }
 
