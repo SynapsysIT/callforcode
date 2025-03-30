@@ -1,0 +1,89 @@
+version: '3'
+services:
+
+  #  auth:
+   # build:
+    #  context: ./auth
+     # dockerfile: Dockerfile
+#    ports:
+ #     - "8000:8000"
+#
+#   networks:
+ #     - my_network
+
+  hydroreport:
+    build:
+      context: ./frontend/app
+      dockerfile: Dockerfile
+
+    ports: 
+      - "8007:80"
+    networks:
+      - my_network
+
+  contribute:
+    build:
+      context: ./API/contribute
+      dockerfile: Dockerfile
+
+    ports:
+      - "8001:8000"
+    networks:
+      - my_network
+
+  data:
+    build:
+      context: ./API/data
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    networks:
+        - my_network
+
+  generator:
+    build:
+      context: ./API/generator
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    networks:
+      - my_network
+
+  maps: 
+    build:
+      context: ./API/maps
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8000"
+    networks:
+      - my_network
+  
+
+  traitement:
+    build:
+      context: ./API/traitement
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8000"
+    networks:
+      - my_network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./API/nginx/nginx_config.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      # - auth
+      - contribute
+      - data
+      - generator
+      - maps
+      - traitement
+    networks:
+      - my_network
+
+
+networks:
+  my_network:
