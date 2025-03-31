@@ -4,4 +4,5 @@ from api.generator import generator
 
 app = FastAPI()
 
-app.include_router(generator)
+app.include_router(generator, prefix="/generator")
+

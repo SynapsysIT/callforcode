@@ -81,6 +81,7 @@ services:
       - generator
       - maps
       - traitement
+      - hydroreport
     networks:
       - my_network
 
